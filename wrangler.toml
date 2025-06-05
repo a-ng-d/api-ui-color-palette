@@ -4,8 +4,11 @@ compatibility_date = "2024-08-27"
 workers_dev = true
 node_compat = true
 
+[build]
+command = "npm config set '//registry.npmjs.org/:_authToken' '${NPM_TOKEN}' && npm install"
+
 [vars]
 NPM_TOKEN = ""
 
-[build]
-command = "npm install"
+[build.environment]
+NODE_VERSION = "18"
