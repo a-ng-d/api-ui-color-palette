@@ -1,25 +1,25 @@
-import { KVNamespace } from "@cloudflare/workers-types";
-import { Data } from "@a_ng_d/utils-ui-color-palette";
+import { Data } from '@a_ng_d/utils-ui-color-palette'
 
 export default {
   async fetch(request, env, ctx): Promise<Response> {
-    const endpoint = new URL(request.url).pathname;
+    const endpoint = new URL(request.url).pathname
+
+    console.log(`Request received for endpoint: ${endpoint}`)
 
     // Handle CORS preflight requests
-    if (request.method === "OPTIONS") {
+    if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: 204,
         headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers":
-            "Content-Type, distinct-id, passkey, tokens, baggage, type, sentry-trace",
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, distinct-id, passkey, tokens, baggage, type, sentry-trace',
         },
-      });
+      })
     }
 
     const actions = {
-      'get-full-palette': async () => {
+      '/get-full-palette': async () => {
         try {
           const body = request.body ? await request.json() : null
           const data = new Data({
@@ -48,11 +48,11 @@ export default {
               },
             })
           }
-        } catch (err) {
-          console.error(`KV returned error: ${err}`)
+        } catch (error) {
+          console.error(`KV returned error: ${error}`)
           return new Response(
             JSON.stringify({
-              message: err,
+              message: error,
             }) as BodyInit,
             {
               status: 500,
@@ -66,11 +66,11 @@ export default {
     }
 
     if (endpoint && actions[endpoint]) {
-      return actions[endpoint]();
+      return actions[endpoint]()
     }
 
-    return new Response("Invalid action type", {
+    return new Response('Invalid action type', {
       status: 400,
-    });
+    })
   },
-};
+}
