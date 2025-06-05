@@ -1,3 +1,12 @@
 name = "uicp"
 main = "worker.ts"
 compatibility_date = "2023-08-23"
+
+[build]
+command = "npm config set '//registry.npmjs.org/:_authToken' '${NPM_TOKEN}' && npm install"
+
+[vars]
+NPM_TOKEN = ""
+
+[build.environment]
+NODE_VERSION = "18"
