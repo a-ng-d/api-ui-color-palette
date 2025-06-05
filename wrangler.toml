@@ -3,4 +3,9 @@ main = "src/worker.ts"
 compatibility_date = "2024-08-27"
 workers_dev = true
 node_compat = true
+
+[vars]
 NPM_TOKEN = ""
+
+[build]
+command = "npm install"
