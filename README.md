@@ -1,15 +1,10 @@
-# Auth Yelbolt Worker
+# UI Color Palette API V0
 
-This repository contains the Auth Yelbolt Worker, a service responsible for managing and providing authentication tokens to clients with the correct key for Yelbolt suite:
-
-- UI Color Palette
-- Ideas Spark Booth
+This repository contains a REST API service that provides process data for a given UI Color Palette.
 
 ## Features
 
-- Stores and maintains authentication tokens.
-- Sends tokens to clients securely.
-- Ensures tokens are matched with the correct key.
+- Process full data set for a given palette
 
 ## License
 
