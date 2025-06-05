@@ -4,8 +4,6 @@ export default {
   async fetch(request, env, ctx): Promise<Response> {
     const endpoint = new URL(request.url).pathname
 
-    console.log(`Request received for endpoint: ${endpoint}`)
-
     // Handle CORS preflight requests
     if (request.method === 'OPTIONS') {
       return new Response(null, {
@@ -49,7 +47,6 @@ export default {
             })
           }
         } catch (error) {
-          console.error(`KV returned error: ${error}`)
           return new Response(
             JSON.stringify({
               message: error,

@@ -6,7 +6,9 @@
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev",
-    "start:8686": "wrangler dev --port 8686"
+    "start:8686": "wrangler dev --port 8686",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write ."
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
