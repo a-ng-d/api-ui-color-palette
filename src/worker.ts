@@ -1,10 +1,6 @@
 import { KVNamespace } from "@cloudflare/workers-types";
 import { Data } from "@a_ng_d/utils-ui-color-palette";
 
-export interface Env {
-  YELBOLT_AUTH_KV: KVNamespace;
-}
-
 export default {
   async fetch(request, env, ctx): Promise<Response> {
     const endpoint = new URL(request.url).pathname;
