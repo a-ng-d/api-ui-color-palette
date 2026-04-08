@@ -16,7 +16,7 @@
     "wrangler": "^3.90.0"
   },
   "dependencies": {
-    "@a_ng_d/utils-ui-color-palette": "^1.0.17",
+    "@a_ng_d/utils-ui-color-palette": "^1.8.2",
     "@cloudflare/workers-types": "^4.20240821.1"
   }
 }
