@@ -1,7 +1,10 @@
-import { Data } from '@a_ng_d/utils-ui-color-palette'
+import { Data, BaseConfiguration, ThemeConfiguration } from '@a_ng_d/utils-ui-color-palette'
+
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+interface Env {}
 
 export default {
-  async fetch(request, env, ctx): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const endpoint = new URL(request.url).pathname
 
     // Handle CORS preflight requests
@@ -16,14 +19,14 @@ export default {
       })
     }
 
-    const actions = {
+    const actions: Record<string, () => Promise<Response>> = {
       '/get-full-palette': async () => {
         try {
-          const body = request.body ? await request.json() : null
+          const body = request.body ? ((await request.json()) as { base: BaseConfiguration; themes: Array<ThemeConfiguration> }) : null
           const data = new Data({
-            base: body.base,
-            themes: body.themes,
-          }).makePaletteData(body.previous !== undefined ? body.previous : undefined)
+            base: body!.base,
+            themes: body!.themes,
+          }).makePaletteData()
 
           if (data === null || data === undefined) {
             return new Response(
