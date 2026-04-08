@@ -12,9 +12,11 @@ import {
 } from '@a_ng_d/utils-ui-color-palette'
 import decodeJpeg from '@jsquash/jpeg/decode'
 import decodePng from '@jsquash/png/decode'
+import { generateColorsFromPrompt } from './mistral'
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-interface Env {}
+interface Env {
+  MISTRAL_API_KEY: string
+}
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -237,6 +239,31 @@ export default {
           }
 
           return new Response(JSON.stringify(result) as BodyInit, {
+            status: 200,
+            headers: jsonHeaders,
+          })
+        } catch (error) {
+          return new Response(JSON.stringify({ message: String(error) }) as BodyInit, {
+            status: 500,
+            headers: corsHeaders,
+          })
+        }
+      },
+
+      '/generate-colors-from-prompts': async () => {
+        try {
+          const body = (await request.json()) as { prompt: string }
+
+          if (!body.prompt) {
+            return new Response(JSON.stringify({ message: 'Missing "prompt" field' }) as BodyInit, {
+              status: 400,
+              headers: corsHeaders,
+            })
+          }
+
+          const palette = await generateColorsFromPrompt(env.MISTRAL_API_KEY, body.prompt)
+
+          return new Response(JSON.stringify(palette) as BodyInit, {
             status: 200,
             headers: jsonHeaders,
           })
