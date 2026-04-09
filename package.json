@@ -8,11 +8,15 @@
     "start": "wrangler dev",
     "start:8686": "wrangler dev --port 8686",
     "format": "prettier --check .",
-    "format:fix": "prettier --write ."
+    "format:fix": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.14.2",
     "@types/crypto-js": "^4.2.2",
     "prettier": "^3.5.3",
+    "vitest": "^4.1.3",
     "wrangler": "^3.90.0"
   },
   "dependencies": {
