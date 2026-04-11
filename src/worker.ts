@@ -535,7 +535,9 @@ export default {
         const supabase = createSupabaseClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY)
         const { data, error } = await supabase
           .from(env.SUPABASE_PALETTES_VIEW)
-          .select('palette_id, name, description, preset, shift, are_source_colors_locked, colors, themes, color_space, algorithm_version, creator_full_name, creator_avatar_url, is_shared, star_count')
+          .select(
+            'palette_id, name, description, preset, shift, are_source_colors_locked, colors, themes, color_space, algorithm_version, creator_full_name, creator_avatar_url, is_shared, star_count',
+          )
           .eq('palette_id', paletteId)
           .eq('is_shared', true)
           .single()
