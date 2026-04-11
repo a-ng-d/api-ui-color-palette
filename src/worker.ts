@@ -23,6 +23,8 @@ interface Env {
   SUPABASE_ANON_KEY: string
   SUPABASE_PALETTES_TABLE: string
   SUPABASE_PALETTES_VIEW: string
+  AUTH_WORKER_URL: string
+  AUTH_URL: string
 }
 
 export default {
@@ -315,44 +317,53 @@ export default {
       },
 
       '/authenticate': async () => {
-        try {
-          const body = (await request.json()) as { email: string; password: string }
+        const sseHeaders = {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+        }
 
-          if (!body.email || !body.password) {
-            return new Response(JSON.stringify({ message: 'Missing "email" or "password" field' }) as BodyInit, {
-              status: 400,
-              headers: corsHeaders,
-            })
-          }
+        const passkeyResponse = await fetch(`${env.AUTH_WORKER_URL}/passkey`, { method: 'GET' })
 
-          const supabase = createSupabaseClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY)
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email: body.email,
-            password: body.password,
-          })
-
-          if (error || !data.session) {
-            return new Response(JSON.stringify({ message: error?.message ?? 'Authentication failed' }) as BodyInit, {
-              status: 401,
-              headers: corsHeaders,
-            })
-          }
-
-          return new Response(
-            JSON.stringify({
-              access_token: data.session.access_token,
-              refresh_token: data.session.refresh_token,
-              expires_in: data.session.expires_in,
-              user: { id: data.user.id, email: data.user.email },
-            }) as BodyInit,
-            { status: 200, headers: jsonHeaders },
-          )
-        } catch (error) {
-          return new Response(JSON.stringify({ message: String(error) }) as BodyInit, {
-            status: 500,
+        if (!passkeyResponse.ok) {
+          return new Response(JSON.stringify({ message: 'Failed to fetch passkey' }) as BodyInit, {
+            status: 502,
             headers: corsHeaders,
           })
         }
+
+        const { passkey } = (await passkeyResponse.json()) as { passkey: string }
+        const authUrl = `${env.AUTH_URL}/?passkey=${passkey}`
+        const encoder = new TextEncoder()
+        const { readable, writable } = new TransformStream()
+        const writer = writable.getWriter()
+
+        const send = (data: object) => writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
+
+        ctx.waitUntil(
+          (async () => {
+            await send({ status: 'pending', passkey, auth_url: authUrl, message: `Please authenticate by opening the following URL in your browser: ${authUrl}` })
+
+            const timeout = Date.now() + 2 * 60 * 1000
+
+            while (Date.now() < timeout) {
+              await new Promise((resolve) => setTimeout(resolve, 2000))
+
+              const res = await fetch(`${env.AUTH_WORKER_URL}/tokens?passkey=${passkey}`, { method: 'GET' })
+              const result = (await res.json()) as { message?: string; tokens?: { access_token: string; refresh_token: string } }
+
+              if (result.message !== 'No token found') {
+                await verifyToken(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, result.tokens!.access_token)
+                await send({ status: 'success', access_token: result.tokens!.access_token, refresh_token: result.tokens!.refresh_token })
+                break
+              }
+            }
+
+            writer.close()
+          })()
+        )
+
+        return new Response(readable, { status: 200, headers: sseHeaders })
       },
 
       '/list-published-palettes': async () => {
