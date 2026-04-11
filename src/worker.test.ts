@@ -8,23 +8,34 @@ vi.mock('@jsquash/png/decode', () => ({ default: async () => fakeImageData }))
 
 // @supabase/realtime-js uses net.Socket (Node.js) which isn't available in Miniflare
 // Mock at the module level; the Supabase tests run against the deployed worker instead
-const mockSelect = vi.fn().mockReturnThis()
-const mockEq = vi.fn().mockReturnThis()
-const mockOrder = vi.fn().mockReturnThis()
-const mockRange = vi.fn().mockReturnThis()
-const mockIlike = vi.fn().mockReturnThis()
 const mockSingle = vi.fn().mockResolvedValue({ data: null, error: null })
+const mockRange = vi.fn().mockResolvedValue({ data: [], error: null })
+const mockIlike = vi.fn(() => ({ range: mockRange }))
+const mockOrder = vi.fn(() => ({ range: mockRange, order: vi.fn(() => ({ range: mockRange })), ilike: mockIlike }))
+const mockEq = vi.fn(() => ({ eq: mockEq, order: mockOrder, single: mockSingle, select: vi.fn(() => ({ single: mockSingle })) }))
+const mockSelect = vi.fn(() => ({ eq: mockEq, order: mockOrder, single: mockSingle }))
 const mockQuery = { select: mockSelect, eq: mockEq, order: mockOrder, range: mockRange, ilike: mockIlike, single: mockSingle }
 const mockFrom = vi.fn(() => mockQuery)
 const mockGetUser = vi.fn().mockResolvedValue({ data: { user: { id: 'test-user-id', email: 'test@test.com' } }, error: null })
-const mockInsert = vi.fn(() => ({ select: vi.fn(() => ({ single: vi.fn().mockResolvedValue({ data: { palette_id: 'new-id' }, error: null }) })) }))
-const mockUpdate = vi.fn(() => ({ eq: vi.fn().mockReturnThis(), select: vi.fn(() => ({ single: vi.fn().mockResolvedValue({ data: { palette_id: 'test-id', is_shared: true }, error: null }) })) }))
-const mockDelete = vi.fn(() => ({ eq: vi.fn().mockReturnThis() }))
+const mockInsert = vi.fn(() => ({
+  select: vi.fn(() => ({ single: vi.fn().mockResolvedValue({ data: { palette_id: 'new-id' }, error: null }) })),
+}))
+const mockUpdate = vi.fn(() => ({
+  eq: vi.fn().mockReturnThis(),
+  select: vi.fn(() => ({ single: vi.fn().mockResolvedValue({ data: { palette_id: 'test-id', is_shared: true }, error: null }) })),
+}))
+const mockDelete = vi.fn(() => ({
+  eq: vi.fn().mockReturnThis(),
+  select: vi.fn(() => ({ single: vi.fn().mockResolvedValue({ data: { palette_id: 'test-id' }, error: null }) })),
+}))
 const mockClient = { from: mockFrom, auth: { getUser: mockGetUser, signInWithPassword: vi.fn() } }
 
 vi.mock('./supabase', () => ({
   createSupabaseClient: vi.fn(() => ({ ...mockClient, from: vi.fn(() => ({ ...mockQuery, data: [], error: null })) })),
-  createSupabaseClientWithToken: vi.fn(() => ({ ...mockClient, from: vi.fn(() => ({ ...mockQuery, insert: mockInsert, update: mockUpdate, delete: mockDelete })) })),
+  createSupabaseClientWithToken: vi.fn(() => ({
+    ...mockClient,
+    from: vi.fn(() => ({ ...mockQuery, insert: mockInsert, update: mockUpdate, delete: mockDelete })),
+  })),
   extractBearerToken: vi.fn((req: Request) => req.headers.get('Authorization')?.slice(7) ?? null),
   verifyToken: vi.fn().mockResolvedValue({ id: 'test-user-id', email: 'test@test.com' }),
 }))
@@ -123,13 +134,39 @@ describe('GET /get-published-palette/:id', () => {
   })
 })
 
+// ─── Supabase — authenticated endpoints ───────────────────────────────────────
+
+describe('GET /list-my-published-palettes', () => {
+  it('returns 200 with an array when authenticated', async () => {
+    const res = await call('/list-my-published-palettes', {
+      headers: { Authorization: 'Bearer valid-token' },
+    })
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(Array.isArray(data)).toBe(true)
+  })
+})
+
+describe('DELETE /unpublish-palette/:id', () => {
+  it('returns 200 with the deleted palette', async () => {
+    const res = await call('/unpublish-palette/test-id', {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer valid-token' },
+    })
+    expect(res.status).toBe(200)
+    const data = (await res.json()) as { palette_id: string }
+    expect(data.palette_id).toBe('test-id')
+  })
+})
+
 // ─── Auth guard ───────────────────────────────────────────────────────────────
 
 describe('Protected endpoints return 401 without token', () => {
   const cases: { method: string; path: string }[] = [
+    { method: 'GET', path: '/list-my-published-palettes' },
     { method: 'POST', path: '/publish-palette' },
-    { method: 'PATCH', path: '/share-published-palette/x' },
-    { method: 'PATCH', path: '/unshare-palette/x' },
+    { method: 'PUT', path: '/share-published-palette/x' },
+    { method: 'PUT', path: '/unshare-published-palette/x' },
     { method: 'PATCH', path: '/update-published-palette/x' },
     { method: 'DELETE', path: '/unpublish-palette/x' },
   ]
@@ -139,7 +176,7 @@ describe('Protected endpoints return 401 without token', () => {
       const res = await call(path, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: method !== 'DELETE' ? JSON.stringify({}) : undefined,
+        body: method !== 'DELETE' && method !== 'GET' && method !== 'PUT' ? JSON.stringify({}) : undefined,
       })
       expect(res.status).toBe(401)
     })
