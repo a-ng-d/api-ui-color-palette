@@ -14,6 +14,7 @@ import decodeJpeg from '@jsquash/jpeg/decode'
 import decodePng, { init as initPng } from '@jsquash/png/decode'
 // @ts-ignore
 import PNG_WASM from '@jsquash/png/codec/pkg/squoosh_png_bg.wasm'
+import { uid } from 'uid'
 import { generateColorsFromPrompt } from './mistral'
 import { createSupabaseClient, createSupabaseClientWithToken, extractBearerToken, verifyToken } from './supabase'
 
@@ -130,10 +131,13 @@ export default {
               await initPng(PNG_WASM)
               imageData = await decodePng(arrayBuffer)
             } else {
-              return new Response(JSON.stringify({ message: `Unsupported image type: ${mimeType}. Use image/jpeg or image/png.` }) as BodyInit, {
-                status: 400,
-                headers: corsHeaders,
-              })
+              return new Response(
+                JSON.stringify({ message: `Unsupported image type: ${mimeType}. Use image/jpeg or image/png.` }) as BodyInit,
+                {
+                  status: 400,
+                  headers: corsHeaders,
+                },
+              )
             }
 
             const colorCount = formData.get('colorCount')
@@ -174,10 +178,13 @@ export default {
                 await initPng(PNG_WASM)
                 imageData = await decodePng(arrayBuffer)
               } else {
-                return new Response(JSON.stringify({ message: `Unsupported image type: ${mimeType}. Use image/jpeg or image/png.` }) as BodyInit, {
-                  status: 400,
-                  headers: corsHeaders,
-                })
+                return new Response(
+                  JSON.stringify({ message: `Unsupported image type: ${mimeType}. Use image/jpeg or image/png.` }) as BodyInit,
+                  {
+                    status: 400,
+                    headers: corsHeaders,
+                  },
+                )
               }
             } else if (body.imageData) {
               imageData = {
@@ -342,7 +349,12 @@ export default {
 
         ctx.waitUntil(
           (async () => {
-            await send({ status: 'pending', passkey, auth_url: authUrl, message: `Please authenticate by opening the following URL in your browser: ${authUrl}` })
+            await send({
+              status: 'pending',
+              passkey,
+              auth_url: authUrl,
+              message: `Please authenticate by opening the following URL in your browser: ${authUrl}`,
+            })
 
             const timeout = Date.now() + 2 * 60 * 1000
 
@@ -360,7 +372,7 @@ export default {
             }
 
             writer.close()
-          })()
+          })(),
         )
 
         return new Response(readable, { status: 200, headers: sseHeaders })
@@ -377,10 +389,57 @@ export default {
 
           let query = supabase
             .from(env.SUPABASE_PALETTES_VIEW)
-            .select('palette_id, name, description, preset, shift, are_source_colors_locked, colors, themes, color_space, algorithm_version, creator_full_name, creator_avatar_url, is_shared, star_count')
+            .select(
+              'palette_id, name, description, preset, shift, are_source_colors_locked, colors, themes, color_space, algorithm_version, creator_full_name, creator_avatar_url, is_shared, star_count',
+            )
             .eq('is_shared', true)
             .order('published_at', { ascending: false })
             .order('add_count', { ascending: false })
+            .range(limit * (page - 1), limit * page - 1)
+
+          if (search !== '') query = query.ilike('name', `%${search}%`)
+
+          const { data, error } = await query
+
+          if (error) throw error
+
+          return new Response(JSON.stringify(data) as BodyInit, {
+            status: 200,
+            headers: jsonHeaders,
+          })
+        } catch (error) {
+          return new Response(JSON.stringify({ message: String(error) }) as BodyInit, {
+            status: 500,
+            headers: corsHeaders,
+          })
+        }
+      },
+
+      '/list-my-published-palettes': async () => {
+        try {
+          const token = extractBearerToken(request)
+          if (!token) {
+            return new Response(JSON.stringify({ message: 'Missing Authorization header' }) as BodyInit, {
+              status: 401,
+              headers: corsHeaders,
+            })
+          }
+
+          const user = await verifyToken(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, token)
+          const url = new URL(request.url)
+          const page = Math.max(1, Number(url.searchParams.get('page') ?? 1))
+          const limit = Math.min(50, Math.max(1, Number(url.searchParams.get('limit') ?? 20)))
+          const search = url.searchParams.get('search') ?? ''
+
+          const supabase = createSupabaseClientWithToken(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, token)
+
+          let query = supabase
+            .from(env.SUPABASE_PALETTES_TABLE)
+            .select(
+              'palette_id, name, description, preset, shift, are_source_colors_locked, colors, themes, color_space, algorithm_version, is_shared, created_at, updated_at, published_at',
+            )
+            .eq('creator_id', user.id)
+            .order('published_at', { ascending: false })
             .range(limit * (page - 1), limit * page - 1)
 
           if (search !== '') query = query.ilike('name', `%${search}%`)
@@ -413,7 +472,6 @@ export default {
 
           const user = await verifyToken(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, token)
           const body = (await request.json()) as {
-            palette_id: string
             name: string
             description?: string
             preset: unknown
@@ -424,7 +482,6 @@ export default {
             color_space: string
             algorithm_version: string
             is_shared?: boolean
-            created_at: string
           }
 
           const now = new Date().toISOString()
@@ -435,8 +492,10 @@ export default {
             .insert([
               {
                 ...body,
+                palette_id: uid(),
                 is_shared: body.is_shared ?? false,
                 creator_id: user.id,
+                created_at: now,
                 updated_at: now,
                 published_at: now,
               },
@@ -444,7 +503,12 @@ export default {
             .select()
             .single()
 
-          if (error) throw error
+          if (error) {
+            return new Response(JSON.stringify({ message: error.message }) as BodyInit, {
+              status: 500,
+              headers: corsHeaders,
+            })
+          }
 
           return new Response(JSON.stringify(data) as BodyInit, {
             status: 201,
@@ -554,15 +618,17 @@ export default {
         const user = await verifyToken(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, token)
         const supabase = createSupabaseClientWithToken(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, token)
 
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from(env.SUPABASE_PALETTES_TABLE)
           .delete()
           .eq('palette_id', paletteId)
           .eq('creator_id', user.id)
+          .select()
+          .single()
 
         if (error) throw error
 
-        return new Response(null, { status: 204, headers: corsHeaders })
+        return new Response(JSON.stringify(data) as BodyInit, { status: 200, headers: jsonHeaders })
       } catch (error) {
         return new Response(JSON.stringify({ message: String(error) }) as BodyInit, {
           status: 500,
@@ -571,7 +637,7 @@ export default {
       }
     }
 
-    const unshareMatch = endpoint.match(/^\/unshare-palette\/(.+)$/)
+    const unshareMatch = endpoint.match(/^\/unshare-published-palette\/(.+)$/)
     if (unshareMatch) {
       const paletteId = unshareMatch[1]
       try {
@@ -642,9 +708,10 @@ export default {
 
         const supabase = createSupabaseClientWithToken(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, token)
 
+        const now = new Date().toISOString()
         const { data, error } = await supabase
           .from(env.SUPABASE_PALETTES_TABLE)
-          .update({ ...body, updated_at: new Date().toISOString() })
+          .update({ ...body, updated_at: now, published_at: now })
           .eq('palette_id', paletteId)
           .eq('creator_id', user.id)
           .select()
