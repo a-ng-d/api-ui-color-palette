@@ -11,7 +11,9 @@ import {
   HarmonyType,
 } from '@a_ng_d/utils-ui-color-palette'
 import decodeJpeg from '@jsquash/jpeg/decode'
-import decodePng from '@jsquash/png/decode'
+import decodePng, { init as initPng } from '@jsquash/png/decode'
+// @ts-ignore
+import PNG_WASM from '@jsquash/png/codec/pkg/squoosh_png_bg.wasm'
 import { generateColorsFromPrompt } from './mistral'
 import { createSupabaseClient, createSupabaseClientWithToken, extractBearerToken, verifyToken } from './supabase'
 
@@ -123,6 +125,7 @@ export default {
             if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') {
               imageData = await decodeJpeg(arrayBuffer)
             } else if (mimeType === 'image/png') {
+              await initPng(PNG_WASM)
               imageData = await decodePng(arrayBuffer)
             } else {
               return new Response(JSON.stringify({ message: `Unsupported image type: ${mimeType}. Use image/jpeg or image/png.` }) as BodyInit, {
@@ -144,18 +147,49 @@ export default {
             }
           } else {
             const body = (await request.json()) as {
-              imageData: { data: number[]; width: number; height: number }
+              imageUrl?: string
+              imageData?: { data: number[]; width: number; height: number }
               colorCount?: number
               maxIterations?: number
               tolerance?: number
               skipTransparent?: boolean
             }
 
-            imageData = {
-              data: new Uint8ClampedArray(body.imageData.data),
-              width: body.imageData.width,
-              height: body.imageData.height,
+            if (body.imageUrl) {
+              const res = await fetch(body.imageUrl)
+              if (!res.ok) {
+                return new Response(JSON.stringify({ message: `Failed to fetch image: ${res.status} ${res.statusText}` }) as BodyInit, {
+                  status: 400,
+                  headers: corsHeaders,
+                })
+              }
+              const mimeType = res.headers.get('Content-Type') ?? ''
+              const arrayBuffer = await res.arrayBuffer()
+
+              if (mimeType.includes('image/jpeg') || mimeType.includes('image/jpg')) {
+                imageData = await decodeJpeg(arrayBuffer)
+              } else if (mimeType.includes('image/png')) {
+                await initPng(PNG_WASM)
+                imageData = await decodePng(arrayBuffer)
+              } else {
+                return new Response(JSON.stringify({ message: `Unsupported image type: ${mimeType}. Use image/jpeg or image/png.` }) as BodyInit, {
+                  status: 400,
+                  headers: corsHeaders,
+                })
+              }
+            } else if (body.imageData) {
+              imageData = {
+                data: new Uint8ClampedArray(body.imageData.data),
+                width: body.imageData.width,
+                height: body.imageData.height,
+              }
+            } else {
+              return new Response(JSON.stringify({ message: 'Missing "imageUrl" or "imageData" field' }) as BodyInit, {
+                status: 400,
+                headers: corsHeaders,
+              })
             }
+
             options = {
               colorCount: body.colorCount,
               maxIterations: body.maxIterations,
