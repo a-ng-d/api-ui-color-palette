@@ -10,3 +10,8 @@ SUPABASE_PALETTES_TABLE = "palettes"
 SUPABASE_PALETTES_VIEW = "palettes_with_creators"
 AUTH_WORKER_URL = "https://oauth.yelbolt.workers.dev"
 AUTH_URL = "https://auth.ui-color-palette.com"
+
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true
