@@ -50,10 +50,21 @@ export default {
     const actions: Record<string, () => Promise<Response>> = {
       '/get-full-palette': async () => {
         try {
-          const body = request.body ? ((await request.json()) as { base: BaseConfiguration; themes: Array<ThemeConfiguration> }) : null
+          const body = request.body
+            ? ((await request.json()) as { base: Partial<BaseConfiguration>; themes: Array<Partial<ThemeConfiguration>> })
+            : null
+          const base: BaseConfiguration = {
+            ...body!.base,
+            preset: { ...body!.base!.preset!, id: body!.base!.preset?.id ?? uid(11) },
+            colors: (body!.base!.colors ?? []).map((c) => ({ ...c, id: c.id ?? uid(11) })),
+          } as BaseConfiguration
+          const themes: Array<ThemeConfiguration> = (body!.themes ?? []).map((t) => ({
+            ...t,
+            id: t.id ?? uid(11),
+          })) as Array<ThemeConfiguration>
           const data = new Data({
-            base: body!.base,
-            themes: body!.themes,
+            base,
+            themes,
           }).makePaletteData()
 
           if (data === null || data === undefined) {
@@ -479,15 +490,19 @@ export default {
           const body = (await request.json()) as {
             name: string
             description?: string
-            preset: unknown
+            preset: Record<string, unknown>
             shift: unknown
             are_source_colors_locked: unknown
-            colors: unknown
-            themes: unknown
+            colors: Array<Record<string, unknown>>
+            themes: Array<Record<string, unknown>>
             color_space: string
             algorithm_version: string
             is_shared?: boolean
           }
+
+          const preset = { ...body.preset, id: body.preset?.id ?? uid(11) }
+          const colors = (body.colors ?? []).map((c) => ({ ...c, id: c.id ?? uid(11) }))
+          const themes = (body.themes ?? []).map((t) => ({ ...t, id: t.id ?? uid(11) }))
 
           const now = new Date().toISOString()
           const supabase = createSupabaseClientWithToken(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, token)
@@ -497,7 +512,10 @@ export default {
             .insert([
               {
                 ...body,
-                palette_id: uid(),
+                preset,
+                colors,
+                themes,
+                palette_id: uid(11),
                 is_shared: body.is_shared ?? false,
                 creator_id: user.id,
                 created_at: now,
