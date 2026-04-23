@@ -11,8 +11,40 @@ REST API built on Cloudflare Workers that powers the UI Color Palette ecosystem.
 | `POST` | `/get-full-palette` | Generate a complete color palette from base and theme configurations |
 | `POST` | `/create-color-harmony` | Create color harmonies (complementary, analogous, triadic, etc.) from a base color |
 | `POST` | `/extract-dominant-colors` | Extract dominant colors from a JPEG/PNG image (URL, raw data, or multipart upload) |
-| `POST` | `/generate-code` | Generate design tokens/code from palette data (CSS, SCSS, Tailwind, Swift, Compose, etc.) |
+| `POST` | `/generate-code` | Generate design tokens/code directly from base + themes (CSS, SCSS, Tailwind, Swift, Compose, etc.) |
 | `POST` | `/generate-colors-from-prompts` | Generate a color palette from a natural language description via Mistral AI |
+
+#### POST /generate-code
+
+Expects palette inputs as `base` and `themes` (not `paletteData`).
+
+Request body:
+
+```json
+{
+	"base": { "...": "..." },
+	"themes": [{ "...": "..." }],
+	"format": "css",
+	"colorSpace": "RGB"
+}
+```
+
+Supported `format` values:
+
+- `css`
+- `scss`
+- `less`
+- `tailwind-v3`
+- `tailwind-v4`
+- `swift-ui`
+- `ui-kit`
+- `compose`
+- `resources`
+- `csv`
+- `native-tokens`
+- `dtcg-tokens`
+- `style-dictionary-v3`
+- `universal-json`
 
 ### Authentication
 

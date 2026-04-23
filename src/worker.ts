@@ -225,12 +225,17 @@ export default {
       '/generate-code': async () => {
         try {
           const body = (await request.json()) as {
-            paletteData: PaletteData
+            base: BaseConfiguration
+            themes: Array<ThemeConfiguration>
             format?: string
             colorSpace?: ColorSpaceConfiguration
           }
+          const data = new Data({
+            base: body!.base,
+            themes: body!.themes,
+          }).makePaletteData()
 
-          const code = new Code(body.paletteData)
+          const code = new Code(data)
           const format = body.format ?? 'css'
           const colorSpace = body.colorSpace ?? 'RGB'
 
