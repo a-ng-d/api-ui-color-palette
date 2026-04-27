@@ -30,7 +30,8 @@ interface Env {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const endpoint = new URL(request.url).pathname
+    const rawPathname = new URL(request.url).pathname
+    const endpoint = rawPathname.replace(/^\/v1(?=\/|$)/, '')
 
     // Handle CORS preflight requests
     if (request.method === 'OPTIONS') {

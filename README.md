@@ -4,17 +4,19 @@ REST API built on Cloudflare Workers that powers the UI Color Palette ecosystem.
 
 ## Endpoints
 
+All endpoints are versioned under the `/v1` prefix.
+
 ### Palette Generation
 
 | Method | Endpoint | Description |
 | ------ | -------- | ----------- |
-| `POST` | `/get-full-palette` | Generate a complete color palette from base and theme configurations |
-| `POST` | `/create-color-harmony` | Create color harmonies (complementary, analogous, triadic, etc.) from a base color |
-| `POST` | `/extract-dominant-colors` | Extract dominant colors from a JPEG/PNG image (URL, raw data, or multipart upload) |
-| `POST` | `/generate-code` | Generate design tokens/code directly from base + themes (CSS, SCSS, Tailwind, Swift, Compose, etc.) |
-| `POST` | `/generate-colors-from-prompts` | Generate a color palette from a natural language description via Mistral AI |
+| `POST` | `/v1/get-full-palette` | Generate a complete color palette from base and theme configurations |
+| `POST` | `/v1/create-color-harmony` | Create color harmonies (complementary, analogous, triadic, etc.) from a base color |
+| `POST` | `/v1/extract-dominant-colors` | Extract dominant colors from a JPEG/PNG image (URL, raw data, or multipart upload) |
+| `POST` | `/v1/generate-code` | Generate design tokens/code directly from base + themes (CSS, SCSS, Tailwind, Swift, Compose, etc.) |
+| `POST` | `/v1/generate-colors-from-prompts` | Generate a color palette from a natural language description via Mistral AI |
 
-#### POST /generate-code
+#### POST /v1/generate-code
 
 Expects palette inputs as `base` and `themes` (not `paletteData`).
 
@@ -50,20 +52,20 @@ Supported `format` values:
 
 | Method | Endpoint | Description |
 | ------ | -------- | ----------- |
-| `GET` | `/authenticate` | Start a passkey-based authentication flow (SSE) |
+| `GET` | `/v1/authenticate` | Start a passkey-based authentication flow (SSE) |
 
 ### Published Palettes
 
 | Method | Endpoint | Auth | Description |
 | ------ | -------- | ---- | ----------- |
-| `GET` | `/list-published-palettes` | No | List publicly shared palettes (paginated, searchable) |
-| `GET` | `/list-my-published-palettes` | Yes | List the authenticated user's own palettes |
-| `POST` | `/publish-palette` | Yes | Publish a new palette |
-| `GET` | `/get-published-palette/:id` | No | Get a specific shared palette by ID |
-| `POST` | `/share-published-palette/:id` | Yes | Make a palette publicly visible |
-| `POST` | `/unshare-published-palette/:id` | Yes | Make a palette private |
-| `POST` | `/update-published-palette/:id` | Yes | Update an existing palette |
-| `DELETE` | `/unpublish-palette/:id` | Yes | Permanently delete a palette |
+| `GET` | `/v1/list-published-palettes` | No | List publicly shared palettes (paginated, searchable) |
+| `GET` | `/v1/list-my-published-palettes` | Yes | List the authenticated user's own palettes |
+| `POST` | `/v1/publish-palette` | Yes | Publish a new palette |
+| `GET` | `/v1/get-published-palette/:id` | No | Get a specific shared palette by ID |
+| `POST` | `/v1/share-published-palette/:id` | Yes | Make a palette publicly visible |
+| `POST` | `/v1/unshare-published-palette/:id` | Yes | Make a palette private |
+| `POST` | `/v1/update-published-palette/:id` | Yes | Update an existing palette |
+| `DELETE` | `/v1/unpublish-palette/:id` | Yes | Permanently delete a palette |
 
 ## Tech Stack
 
