@@ -18,8 +18,6 @@ import { uid } from 'uid'
 import { generateColorsFromPrompt } from './mistral'
 import { createSupabaseClient, createSupabaseClientWithToken, extractBearerToken, verifyToken } from './supabase'
 
-// Local types until @a_ng_d/utils-ui-color-palette 1.10.0 is published.
-// Mirror the shapes defined in utils-ui-color-palette/src/types/configuration.types.ts
 interface TaxonomyGroupMemberLocal {
   id: string
   name: string
@@ -147,7 +145,6 @@ export default {
             ...t,
             id: t.id ?? uid(11),
           })) as Array<ThemeConfiguration>
-          // The `includeLibraryData` option is available in utils >= 1.10.0
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const data: PaletteData = (new Data({ base, themes }).makePaletteData as any)({
             includeLibraryData: body!.includeLibraryData,
@@ -333,7 +330,6 @@ export default {
             themes: body!.themes,
           }).makePaletteData()
 
-          // Build SystemData if a system config is provided
           let systemData: unknown
           if (body.system) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
