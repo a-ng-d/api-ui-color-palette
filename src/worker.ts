@@ -9,7 +9,10 @@ import {
   ColorSpaceConfiguration,
   Channel,
   HarmonyType,
+  // @ts-ignore — ColorConfiguration is not re-exported in all versions
 } from '@a_ng_d/utils-ui-color-palette'
+
+type ColorConfiguration = NonNullable<BaseConfiguration['colors']>[number]
 import decodeJpeg from '@jsquash/jpeg/decode'
 import decodePng, { init as initPng } from '@jsquash/png/decode'
 // @ts-ignore
@@ -72,6 +75,36 @@ export default {
     const corsHeaders = { 'Access-Control-Allow-Origin': '*' }
     const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' }
 
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    const fillColorDefaults = (c: Partial<ColorConfiguration> & { id?: string }): ColorConfiguration => ({
+      description: '',
+      hue: { shift: 0, isLocked: false },
+      chroma: { shift: 0, isLocked: false },
+      alpha: { isEnabled: false, backgroundColor: '#FFFFFF' },
+      ...c,
+      id: c.id ?? uid(11),
+    } as ColorConfiguration)
+
+    const fillThemeDefaults = (t: Partial<ThemeConfiguration>, preset: { stops: Array<number>; min: number; max: number }): ThemeConfiguration => {
+      const scale: Record<string, number> = t.scale ?? (() => {
+        const { stops, min, max } = preset
+        const n = stops.length - 1
+        return Object.fromEntries(stops.map((stop, i) => [String(stop), parseFloat((max - (max - min) * i / n).toFixed(1))]))
+      })()
+      return {
+        description: '',
+        visionSimulationMode: 'NONE',
+        textColorsTheme: { lightColor: '#FFFFFF', darkColor: '#000000' },
+        paletteBackground: '#FFFFFF',
+        isEnabled: true,
+        type: 'default theme',
+        ...t,
+        id: t.id ?? uid(11),
+        scale,
+      } as ThemeConfiguration
+    }
+
     const actions: Record<string, () => Promise<Response>> = {
       '/get-color-system': async () => {
         try {
@@ -91,12 +124,9 @@ export default {
           const base: BaseConfiguration = {
             ...body.base,
             preset: { ...body.base!.preset!, id: body.base!.preset?.id ?? uid(11) },
-            colors: (body.base!.colors ?? []).map((c) => ({ ...c, id: c.id ?? uid(11) })),
+            colors: (body.base!.colors ?? []).map(fillColorDefaults),
           } as BaseConfiguration
-          const themes: Array<ThemeConfiguration> = (body.themes ?? []).map((t) => ({
-            ...t,
-            id: t.id ?? uid(11),
-          })) as Array<ThemeConfiguration>
+          const themes: Array<ThemeConfiguration> = (body.themes ?? []).map((t) => fillThemeDefaults(t, body.base!.preset!))
           const paletteData = new Data({ base, themes }).makePaletteData()
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -139,12 +169,9 @@ export default {
           const base: BaseConfiguration = {
             ...body!.base,
             preset: { ...body!.base!.preset!, id: body!.base!.preset?.id ?? uid(11) },
-            colors: (body!.base!.colors ?? []).map((c) => ({ ...c, id: c.id ?? uid(11) })),
+            colors: (body!.base!.colors ?? []).map(fillColorDefaults),
           } as BaseConfiguration
-          const themes: Array<ThemeConfiguration> = (body!.themes ?? []).map((t) => ({
-            ...t,
-            id: t.id ?? uid(11),
-          })) as Array<ThemeConfiguration>
+          const themes: Array<ThemeConfiguration> = (body!.themes ?? []).map((t) => fillThemeDefaults(t, body!.base!.preset!))
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const data: PaletteData = (new Data({ base, themes }).makePaletteData as any)({
             includeLibraryData: body!.includeLibraryData,
@@ -326,8 +353,12 @@ export default {
             system?: SystemConfigurationLocal
           }
           const data = new Data({
-            base: body!.base,
-            themes: body!.themes,
+            base: {
+              ...body!.base,
+              preset: { ...body!.base!.preset!, id: body!.base!.preset?.id ?? uid(11) },
+              colors: (body!.base!.colors ?? []).map(fillColorDefaults),
+            } as BaseConfiguration,
+            themes: (body!.themes ?? []).map((t) => fillThemeDefaults(t, body!.base!.preset!)),
           }).makePaletteData()
 
           let systemData: unknown
