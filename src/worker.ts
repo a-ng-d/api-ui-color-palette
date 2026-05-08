@@ -18,6 +18,32 @@ import { uid } from 'uid'
 import { generateColorsFromPrompt } from './mistral'
 import { createSupabaseClient, createSupabaseClientWithToken, extractBearerToken, verifyToken } from './supabase'
 
+// Local types until @a_ng_d/utils-ui-color-palette 1.10.0 is published.
+// Mirror the shapes defined in utils-ui-color-palette/src/types/configuration.types.ts
+interface TaxonomyGroupMemberLocal {
+  id: string
+  name: string
+}
+interface TaxonomyGroupLocal {
+  id: string
+  name: string
+  members: Array<TaxonomyGroupMemberLocal>
+}
+interface TaxonomySchemaLocal {
+  groups: Array<TaxonomyGroupLocal>
+}
+interface TaxonomyBindingLocal {
+  path: Array<string>
+  description?: string
+  ref: string
+  overrides?: Record<string, string>
+  isExcluded?: boolean
+}
+interface SystemConfigurationLocal {
+  schema: TaxonomySchemaLocal
+  bindings?: Array<TaxonomyBindingLocal>
+}
+
 interface Env {
   MISTRAL_API_KEY: string
   SUPABASE_URL: string
@@ -49,10 +75,68 @@ export default {
     const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' }
 
     const actions: Record<string, () => Promise<Response>> = {
-      '/get-full-palette': async () => {
+      '/get-color-system': async () => {
         try {
           const body = request.body
-            ? ((await request.json()) as { base: Partial<BaseConfiguration>; themes: Array<Partial<ThemeConfiguration>> })
+            ? ((await request.json()) as {
+                base: Partial<BaseConfiguration>
+                themes: Array<Partial<ThemeConfiguration>>
+                system: SystemConfigurationLocal
+              })
+            : null
+          if (!body || !body.system) {
+            return new Response(JSON.stringify({ message: 'Missing system configuration' }) as BodyInit, {
+              status: 400,
+              headers: corsHeaders,
+            })
+          }
+          const base: BaseConfiguration = {
+            ...body.base,
+            preset: { ...body.base!.preset!, id: body.base!.preset?.id ?? uid(11) },
+            colors: (body.base!.colors ?? []).map((c) => ({ ...c, id: c.id ?? uid(11) })),
+          } as BaseConfiguration
+          const themes: Array<ThemeConfiguration> = (body.themes ?? []).map((t) => ({
+            ...t,
+            id: t.id ?? uid(11),
+          })) as Array<ThemeConfiguration>
+          const paletteData = new Data({ base, themes }).makePaletteData()
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const utilsModule = (await import('@a_ng_d/utils-ui-color-palette')) as any
+          const SystemClass = utilsModule.System
+          if (typeof SystemClass !== 'function') {
+            return new Response(
+              JSON.stringify({
+                message: 'System class unavailable. Requires @a_ng_d/utils-ui-color-palette >= 1.10.0',
+              }) as BodyInit,
+              { status: 501, headers: jsonHeaders }
+            )
+          }
+          const systemData = new SystemClass({
+            paletteData,
+            system: body.system,
+          }).makeSystemData()
+
+          return new Response(JSON.stringify(systemData) as BodyInit, {
+            status: 200,
+            headers: jsonHeaders,
+          })
+        } catch (error) {
+          return new Response(JSON.stringify({ message: String(error) }) as BodyInit, {
+            status: 500,
+            headers: corsHeaders,
+          })
+        }
+      },
+
+      '/get-palette': async () => {
+        try {
+          const body = request.body
+            ? ((await request.json()) as {
+                base: Partial<BaseConfiguration>
+                themes: Array<Partial<ThemeConfiguration>>
+                includeLibraryData?: boolean
+              })
             : null
           const base: BaseConfiguration = {
             ...body!.base,
@@ -63,10 +147,11 @@ export default {
             ...t,
             id: t.id ?? uid(11),
           })) as Array<ThemeConfiguration>
-          const data = new Data({
-            base,
-            themes,
-          }).makePaletteData()
+          // The `includeLibraryData` option is available in utils >= 1.10.0
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const data: PaletteData = (new Data({ base, themes }).makePaletteData as any)({
+            includeLibraryData: body!.includeLibraryData,
+          })
 
           if (data === null || data === undefined) {
             return new Response(JSON.stringify({ message: 'The provided palette is not valid' }) as BodyInit, {
@@ -241,13 +326,32 @@ export default {
             themes: Array<ThemeConfiguration>
             format?: string
             colorSpace?: ColorSpaceConfiguration
+            system?: SystemConfigurationLocal
           }
           const data = new Data({
             base: body!.base,
             themes: body!.themes,
           }).makePaletteData()
 
-          const code = new Code(data)
+          // Build SystemData if a system config is provided
+          let systemData: unknown
+          if (body.system) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const utilsModule = (await import('@a_ng_d/utils-ui-color-palette')) as any
+            const SystemClass = utilsModule.System
+            if (typeof SystemClass !== 'function')
+              return new Response(
+                JSON.stringify({
+                  message:
+                    'System class unavailable. Requires @a_ng_d/utils-ui-color-palette >= 1.10.0',
+                }) as BodyInit,
+                { status: 501, headers: jsonHeaders }
+              )
+            systemData = new SystemClass({ paletteData: data, system: body.system }).makeSystemData()
+          }
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const code = new (Code as any)({ paletteData: data, systemData })
           const format = body.format ?? 'css'
           const colorSpace = body.colorSpace ?? 'RGB'
 
