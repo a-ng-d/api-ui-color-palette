@@ -10,7 +10,8 @@ All endpoints are versioned under the `/v1` prefix.
 
 | Method | Endpoint | Description |
 | ------ | -------- | ----------- |
-| `POST` | `/v1/get-full-palette` | Generate a complete color palette from base and theme configurations |
+| `POST` | `/v1/get-palette` | Generate a complete color palette from base and theme configurations |
+| `POST` | `/v1/get-color-system` | Build a semantic color system (SystemData) by resolving taxonomy bindings against a generated palette |
 | `POST` | `/v1/create-color-harmony` | Create color harmonies (complementary, analogous, triadic, etc.) from a base color |
 | `POST` | `/v1/extract-dominant-colors` | Extract dominant colors from a JPEG/PNG image (URL, raw data, or multipart upload) |
 | `POST` | `/v1/generate-code` | Generate design tokens/code directly from base + themes (CSS, SCSS, Tailwind, Swift, Compose, etc.) |
