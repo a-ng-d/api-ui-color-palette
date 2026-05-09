@@ -77,6 +77,27 @@ export default {
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
+    const toCompactPaletteData = (data: PaletteData): Array<Record<string, unknown>> =>
+      data.themes.flatMap((theme) =>
+        theme.colors.flatMap((color) =>
+          color.shades.map((shade) => ({
+            themeId: theme.id,
+            theme: theme.name,
+            colorId: color.id,
+            color: color.name,
+            shade: shade.name,
+            hex: shade.hex,
+            ...(shade.alpha !== undefined && { alpha: shade.alpha }),
+            contrast: shade.contrast,
+            textContrast: shade.textContrast,
+            isClosestToRef: shade.isClosestToRef,
+            isSourceColorLocked: shade.isSourceColorLocked,
+            isTransparent: shade.isTransparent,
+            type: shade.type,
+          }))
+        )
+      )
+
     const fillColorDefaults = (c: Partial<ColorConfiguration> & { id?: string }): ColorConfiguration => ({
       description: '',
       hue: { shift: 0, isLocked: false },
@@ -164,6 +185,7 @@ export default {
                 base: Partial<BaseConfiguration>
                 themes: Array<Partial<ThemeConfiguration>>
                 includeLibraryData?: boolean
+                compact?: boolean
               })
             : null
           const base: BaseConfiguration = {
@@ -184,7 +206,9 @@ export default {
             })
           }
 
-          return new Response(JSON.stringify(data) as BodyInit, {
+          const responseData = body!.compact ? toCompactPaletteData(data) : data
+
+          return new Response(JSON.stringify(responseData) as BodyInit, {
             status: 200,
             headers: jsonHeaders,
           })
