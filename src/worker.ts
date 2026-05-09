@@ -10,8 +10,6 @@ import {
   ShiftConfiguration,
   ColorSpaceConfiguration,
   AlgorithmVersionConfiguration,
-  VisionSimulationModeConfiguration,
-  EasingConfiguration,
   PaletteData,
   Channel,
   HarmonyType,
@@ -23,13 +21,7 @@ import PNG_WASM from '@jsquash/png/codec/pkg/squoosh_png_bg.wasm'
 import { uid } from 'uid'
 import { generateColorsFromPrompt } from './mistral'
 import { createSupabaseClient, createSupabaseClientWithToken, extractBearerToken, verifyToken } from './supabase'
-import {
-  COLOR_SPACES, ALGORITHM_VERSIONS, EASING_VALUES, VISION_MODES, PUBLISH_ALLOWED_FIELDS,
-  ValidationResult,
-  isStr, isNum, isBool, isObj, isArr, isHex, isEnum,
-  vPreset, vShift, vColor, vTheme,
-  validatePublishBody, validateUpdateBody,
-} from './validation'
+import { PUBLISH_ALLOWED_FIELDS, validatePublishBody, validateUpdateBody } from './validation'
 
 interface TaxonomyGroupMemberLocal {
   id: string
@@ -104,25 +96,31 @@ export default {
             isSourceColorLocked: shade.isSourceColorLocked,
             isTransparent: shade.isTransparent,
             type: shade.type,
-          }))
-        )
+          })),
+        ),
       )
 
-    const fillColorDefaults = (c: Partial<ColorConfiguration> & { id?: string }): ColorConfiguration => ({
-      description: '',
-      hue: { shift: 0, isLocked: false },
-      chroma: { shift: 0, isLocked: false },
-      alpha: { isEnabled: false, backgroundColor: '#FFFFFF' },
-      ...c,
-      id: c.id ?? uid(11),
-    } as ColorConfiguration)
+    const fillColorDefaults = (c: Partial<ColorConfiguration> & { id?: string }): ColorConfiguration =>
+      ({
+        description: '',
+        hue: { shift: 0, isLocked: false },
+        chroma: { shift: 0, isLocked: false },
+        alpha: { isEnabled: false, backgroundColor: '#FFFFFF' },
+        ...c,
+        id: c.id ?? uid(11),
+      }) as ColorConfiguration
 
-    const fillThemeDefaults = (t: Partial<ThemeConfiguration>, preset: { stops: Array<number>; min: number; max: number }): ThemeConfiguration => {
-      const scale: Record<string, number> = t.scale ?? (() => {
-        const { stops, min, max } = preset
-        const n = stops.length - 1
-        return Object.fromEntries(stops.map((stop, i) => [String(stop), parseFloat((max - (max - min) * i / n).toFixed(1))]))
-      })()
+    const fillThemeDefaults = (
+      t: Partial<ThemeConfiguration>,
+      preset: { stops: Array<number>; min: number; max: number },
+    ): ThemeConfiguration => {
+      const scale: Record<string, number> =
+        t.scale ??
+        (() => {
+          const { stops, min, max } = preset
+          const n = stops.length - 1
+          return Object.fromEntries(stops.map((stop, i) => [String(stop), parseFloat((max - ((max - min) * i) / n).toFixed(1))]))
+        })()
       return {
         description: '',
         visionSimulationMode: 'NONE',
@@ -168,7 +166,7 @@ export default {
               JSON.stringify({
                 message: 'System class unavailable. Requires @a_ng_d/utils-ui-color-palette >= 1.10.0',
               }) as BodyInit,
-              { status: 501, headers: jsonHeaders }
+              { status: 501, headers: jsonHeaders },
             )
           }
           const systemData = new SystemClass({
@@ -403,10 +401,9 @@ export default {
             if (typeof SystemClass !== 'function')
               return new Response(
                 JSON.stringify({
-                  message:
-                    'System class unavailable. Requires @a_ng_d/utils-ui-color-palette >= 1.10.0',
+                  message: 'System class unavailable. Requires @a_ng_d/utils-ui-color-palette >= 1.10.0',
                 }) as BodyInit,
-                { status: 501, headers: jsonHeaders }
+                { status: 501, headers: jsonHeaders },
               )
             systemData = new SystemClass({ paletteData: data, system: body.system }).makeSystemData()
           }
@@ -665,7 +662,9 @@ export default {
 
           // Narrow type after validation and restrict to allowed fields only
           const body = Object.fromEntries(
-            Object.entries(rawBody as Record<string, unknown>).filter(([k]) => PUBLISH_ALLOWED_FIELDS.includes(k as typeof PUBLISH_ALLOWED_FIELDS[number])),
+            Object.entries(rawBody as Record<string, unknown>).filter(([k]) =>
+              PUBLISH_ALLOWED_FIELDS.includes(k as (typeof PUBLISH_ALLOWED_FIELDS)[number]),
+            ),
           ) as {
             name: string
             description?: string
@@ -909,7 +908,9 @@ export default {
 
         // Restrict to allowed fields only — prevents injection of creator_id, palette_id, etc.
         const body = Object.fromEntries(
-          Object.entries(rawBody as Record<string, unknown>).filter(([k]) => PUBLISH_ALLOWED_FIELDS.includes(k as typeof PUBLISH_ALLOWED_FIELDS[number])),
+          Object.entries(rawBody as Record<string, unknown>).filter(([k]) =>
+            PUBLISH_ALLOWED_FIELDS.includes(k as (typeof PUBLISH_ALLOWED_FIELDS)[number]),
+          ),
         )
 
         const supabase = createSupabaseClientWithToken(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, token)
