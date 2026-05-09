@@ -5,14 +5,17 @@ import {
   DominantColors,
   BaseConfiguration,
   ThemeConfiguration,
-  PaletteData,
+  ColorConfiguration,
+  PresetConfiguration,
+  ShiftConfiguration,
   ColorSpaceConfiguration,
+  AlgorithmVersionConfiguration,
+  VisionSimulationModeConfiguration,
+  EasingConfiguration,
+  PaletteData,
   Channel,
   HarmonyType,
-  // @ts-ignore — ColorConfiguration is not re-exported in all versions
 } from '@a_ng_d/utils-ui-color-palette'
-
-type ColorConfiguration = NonNullable<BaseConfiguration['colors']>[number]
 import decodeJpeg from '@jsquash/jpeg/decode'
 import decodePng, { init as initPng } from '@jsquash/png/decode'
 // @ts-ignore
@@ -20,6 +23,13 @@ import PNG_WASM from '@jsquash/png/codec/pkg/squoosh_png_bg.wasm'
 import { uid } from 'uid'
 import { generateColorsFromPrompt } from './mistral'
 import { createSupabaseClient, createSupabaseClientWithToken, extractBearerToken, verifyToken } from './supabase'
+import {
+  COLOR_SPACES, ALGORITHM_VERSIONS, EASING_VALUES, VISION_MODES, PUBLISH_ALLOWED_FIELDS,
+  ValidationResult,
+  isStr, isNum, isBool, isObj, isArr, isHex, isEnum,
+  vPreset, vShift, vColor, vTheme,
+  validatePublishBody, validateUpdateBody,
+} from './validation'
 
 interface TaxonomyGroupMemberLocal {
   id: string
@@ -643,16 +653,29 @@ export default {
           }
 
           const user = await verifyToken(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, token)
-          const body = (await request.json()) as {
+          const rawBody = await request.json()
+
+          const validation = validatePublishBody(rawBody)
+          if (!validation.ok) {
+            return new Response(JSON.stringify({ message: `Invalid field "${validation.field}": ${validation.message}` }) as BodyInit, {
+              status: 400,
+              headers: corsHeaders,
+            })
+          }
+
+          // Narrow type after validation and restrict to allowed fields only
+          const body = Object.fromEntries(
+            Object.entries(rawBody as Record<string, unknown>).filter(([k]) => PUBLISH_ALLOWED_FIELDS.includes(k as typeof PUBLISH_ALLOWED_FIELDS[number])),
+          ) as {
             name: string
             description?: string
-            preset: Record<string, unknown>
-            shift: unknown
-            are_source_colors_locked: unknown
-            colors: Array<Record<string, unknown>>
-            themes: Array<Record<string, unknown>>
-            color_space: string
-            algorithm_version: string
+            preset: PresetConfiguration
+            shift: ShiftConfiguration
+            are_source_colors_locked?: boolean
+            colors: Array<ColorConfiguration>
+            themes: Array<ThemeConfiguration>
+            color_space: ColorSpaceConfiguration
+            algorithm_version: AlgorithmVersionConfiguration
             is_shared?: boolean
           }
 
@@ -874,18 +897,20 @@ export default {
         }
 
         const user = await verifyToken(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, token)
-        const body = (await request.json()) as Partial<{
-          name: string
-          description: string
-          preset: unknown
-          shift: unknown
-          are_source_colors_locked: unknown
-          colors: unknown
-          themes: unknown
-          color_space: string
-          algorithm_version: string
-          is_shared: boolean
-        }>
+        const rawBody = await request.json()
+
+        const validation = validateUpdateBody(rawBody)
+        if (!validation.ok) {
+          return new Response(JSON.stringify({ message: `Invalid field "${validation.field}": ${validation.message}` }) as BodyInit, {
+            status: 400,
+            headers: corsHeaders,
+          })
+        }
+
+        // Restrict to allowed fields only — prevents injection of creator_id, palette_id, etc.
+        const body = Object.fromEntries(
+          Object.entries(rawBody as Record<string, unknown>).filter(([k]) => PUBLISH_ALLOWED_FIELDS.includes(k as typeof PUBLISH_ALLOWED_FIELDS[number])),
+        )
 
         const supabase = createSupabaseClientWithToken(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, token)
 
