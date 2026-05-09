@@ -65,6 +65,45 @@ describe('CORS preflight', () => {
   })
 })
 
+// ─── Palette ──────────────────────────────────────────────────────────────────
+
+const paletteBody = {
+  base: {
+    preset: { id: 'preset-1', name: 'Material', stops: [100, 200, 300, 400, 500, 600, 700, 800, 900], min: 10, max: 90, easing: 'NONE' },
+    colors: [{ name: 'Blue', rgb: { r: 0, g: 0.47, b: 1 }, hue: { shift: 0, isLocked: false }, chroma: { shift: 0, isLocked: false }, alpha: { isEnabled: false, backgroundColor: '#FFFFFF' } }],
+  },
+  themes: [{ name: 'Default' }],
+}
+
+describe('POST /get-palette', () => {
+  it('returns full PaletteData (compact: false)', async () => {
+    const res = await call('/get-palette', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...paletteBody, compact: false }),
+    })
+    expect(res.status).toBe(200)
+    const data = (await res.json()) as { themes: unknown[] }
+    expect(data).toHaveProperty('themes')
+    expect(Array.isArray(data.themes)).toBe(true)
+  })
+
+  it('returns a flat array (compact: true)', async () => {
+    const res = await call('/get-palette', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...paletteBody, compact: true }),
+    })
+    expect(res.status).toBe(200)
+    const data = (await res.json()) as Array<{ shade: string; hex: string }>
+    expect(Array.isArray(data)).toBe(true)
+    expect(data.length).toBeGreaterThan(0)
+    expect(data[0]).toHaveProperty('shade')
+    expect(data[0]).toHaveProperty('hex')
+    expect(data[0]).not.toHaveProperty('rgb')
+  })
+})
+
 // ─── Color harmony ────────────────────────────────────────────────────────────
 
 describe('POST /create-color-harmony', () => {
