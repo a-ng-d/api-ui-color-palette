@@ -1,7 +1,7 @@
 import { generateColorsFromPrompt } from '../mistral'
 import type { HandlerContext } from '../types'
 
-export async function handleGenerateColorsFromPrompts({ request, env, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> {
+export const handleGenerateColorsFromPrompts = async ({ request, env, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> => {
   try {
     const body = (await request.json()) as { prompt: string }
 

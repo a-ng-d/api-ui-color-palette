@@ -11,7 +11,7 @@ import { createSupabaseClient, createSupabaseClientWithToken, extractBearerToken
 import { PUBLISH_ALLOWED_FIELDS, validatePublishBody, validateUpdateBody } from '../validation'
 import type { HandlerContext } from '../types'
 
-export async function handleListPublishedPalettes({ request, env, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> {
+export const handleListPublishedPalettes = async ({ request, env, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> => {
   try {
     const url = new URL(request.url)
     const page = Math.max(1, Number(url.searchParams.get('page') ?? 1))
@@ -41,7 +41,7 @@ export async function handleListPublishedPalettes({ request, env, corsHeaders, j
   }
 }
 
-export async function handleListMyPublishedPalettes({ request, env, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> {
+export const handleListMyPublishedPalettes = async ({ request, env, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> => {
   try {
     const token = extractBearerToken(request)
     if (!token) {
@@ -79,7 +79,7 @@ export async function handleListMyPublishedPalettes({ request, env, corsHeaders,
   }
 }
 
-export async function handlePublishPalette({ request, env, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> {
+export const handlePublishPalette = async ({ request, env, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> => {
   try {
     const token = extractBearerToken(request)
     if (!token) {
@@ -153,10 +153,10 @@ export async function handlePublishPalette({ request, env, corsHeaders, jsonHead
   }
 }
 
-export async function handleGetPublishedPalette(
+export const handleGetPublishedPalette = async (
   { env, corsHeaders, jsonHeaders }: HandlerContext,
   paletteId: string,
-): Promise<Response> {
+): Promise<Response> => {
   try {
     const supabase = createSupabaseClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY)
     const { data, error } = await supabase
@@ -179,10 +179,10 @@ export async function handleGetPublishedPalette(
   }
 }
 
-export async function handleSharePublishedPalette(
+export const handleSharePublishedPalette = async (
   { request, env, corsHeaders, jsonHeaders }: HandlerContext,
   paletteId: string,
-): Promise<Response> {
+): Promise<Response> => {
   try {
     const token = extractBearerToken(request)
     if (!token) {
@@ -217,10 +217,10 @@ export async function handleSharePublishedPalette(
   }
 }
 
-export async function handleUnpublishPalette(
+export const handleUnpublishPalette = async (
   { request, env, corsHeaders, jsonHeaders }: HandlerContext,
   paletteId: string,
-): Promise<Response> {
+): Promise<Response> => {
   try {
     const token = extractBearerToken(request)
     if (!token) {
@@ -249,10 +249,10 @@ export async function handleUnpublishPalette(
   }
 }
 
-export async function handleUnsharePublishedPalette(
+export const handleUnsharePublishedPalette = async (
   { request, env, corsHeaders, jsonHeaders }: HandlerContext,
   paletteId: string,
-): Promise<Response> {
+): Promise<Response> => {
   try {
     const token = extractBearerToken(request)
     if (!token) {
@@ -287,10 +287,10 @@ export async function handleUnsharePublishedPalette(
   }
 }
 
-export async function handleUpdatePublishedPalette(
+export const handleUpdatePublishedPalette = async (
   { request, env, corsHeaders, jsonHeaders }: HandlerContext,
   paletteId: string,
-): Promise<Response> {
+): Promise<Response> => {
   try {
     const token = extractBearerToken(request)
     if (!token) {

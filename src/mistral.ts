@@ -15,7 +15,7 @@ export interface MistralColorPalette {
   alert: MistralColor
 }
 
-export async function generateColorsFromPrompt(apiKey: string, userPrompt: string): Promise<MistralColorPalette> {
+export const generateColorsFromPrompt = async (apiKey: string, userPrompt: string): Promise<MistralColorPalette> => {
   const mistral = new Mistral({ apiKey })
 
   const result = await mistral.agents.complete({

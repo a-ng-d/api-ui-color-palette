@@ -1,7 +1,7 @@
 import { verifyToken } from '../supabase'
 import type { HandlerContext } from '../types'
 
-export async function handleAuthenticate({ env, ctx, corsHeaders }: HandlerContext): Promise<Response> {
+export const handleAuthenticate = async ({ env, ctx, corsHeaders }: HandlerContext): Promise<Response> => {
   const sseHeaders = {
     ...corsHeaders,
     'Content-Type': 'text/event-stream',

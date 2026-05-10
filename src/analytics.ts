@@ -41,11 +41,10 @@ export const FORMAT_FEATURE_MAP: Record<string, string> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getEnvironment(request: Request): 'production' | 'development' {
-  return request.headers.get('CF-Ray') !== null ? 'production' : 'development'
-}
+const getEnvironment = (request: Request): 'production' | 'development' =>
+  request.headers.get('CF-Ray') !== null ? 'production' : 'development'
 
-function getAuthenticatedUserId(request: Request): string | null {
+const getAuthenticatedUserId = (request: Request): string | null => {
   const authHeader = request.headers.get('Authorization')
   if (authHeader?.startsWith('Bearer ')) {
     try {
@@ -61,13 +60,13 @@ function getAuthenticatedUserId(request: Request): string | null {
 
 // ─── Tracker ──────────────────────────────────────────────────────────────────
 
-export function trackApiEvent(
+export const trackApiEvent = (
   ctx: ExecutionContext,
   env: Env,
   request: Request,
   endpoint: string,
   extraProps?: Record<string, unknown>,
-): void {
+): void => {
   if (!env.MIXPANEL_TOKEN) return
 
   const config = ENDPOINT_EVENTS[endpoint]

@@ -41,7 +41,7 @@ interface SystemConfigurationLocal {
   bindings?: Array<TaxonomyBindingLocal>
 }
 
-export async function handleGetColorSystem({ request, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> {
+export const handleGetColorSystem = async ({ request, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> => {
   try {
     const body = request.body
       ? ((await request.json()) as {
@@ -81,7 +81,7 @@ export async function handleGetColorSystem({ request, corsHeaders, jsonHeaders }
   }
 }
 
-export async function handleGetPalette({ request, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> {
+export const handleGetPalette = async ({ request, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> => {
   try {
     const body = request.body
       ? ((await request.json()) as {
@@ -114,7 +114,7 @@ export async function handleGetPalette({ request, corsHeaders, jsonHeaders }: Ha
   }
 }
 
-export async function handleCreateColorHarmony({ request, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> {
+export const handleCreateColorHarmony = async ({ request, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> => {
   try {
     const body = (await request.json()) as {
       baseColor: Channel
@@ -136,7 +136,7 @@ export async function handleCreateColorHarmony({ request, corsHeaders, jsonHeade
   }
 }
 
-export async function handleExtractDominantColors({ request, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> {
+export const handleExtractDominantColors = async ({ request, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> => {
   try {
     const contentType = request.headers.get('Content-Type') ?? ''
 
@@ -241,7 +241,7 @@ export async function handleExtractDominantColors({ request, corsHeaders, jsonHe
   }
 }
 
-export async function handleGenerateCode({ request, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> {
+export const handleGenerateCode = async ({ request, corsHeaders, jsonHeaders }: HandlerContext): Promise<Response> => {
   try {
     const body = (await request.json()) as {
       base: BaseConfiguration

@@ -14,7 +14,7 @@ import { handleAuthenticate } from './handlers/auth'
 import { handleGenerateColorsFromPrompts } from './handlers/ai'
 import { trackApiEvent, FORMAT_FEATURE_MAP } from './analytics'
 
-async function peekJsonBody(request: Request): Promise<Record<string, unknown>> {
+const peekJsonBody = async (request: Request): Promise<Record<string, unknown>> => {
   try {
     return (await request.clone().json()) as Record<string, unknown>
   } catch {
