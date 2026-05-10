@@ -6,6 +6,7 @@ export interface Env {
   SUPABASE_PALETTES_VIEW: string
   AUTH_WORKER_URL: string
   AUTH_URL: string
+  MIXPANEL_TOKEN?: string
 }
 
 export type HandlerContext = {
