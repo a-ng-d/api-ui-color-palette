@@ -1,5 +1,5 @@
 import type { Env, HandlerContext } from './types'
-import { handleGetColorSystem, handleGetPalette, handleCreateColorHarmony, handleExtractDominantColors, handleGenerateCode } from './handlers/palette'
+import { handleGetColorSystem, handleGetPalette, handleCreateColorHarmony, handleExtractDominantColors, handleGenerateCode, handlePreviewPalette } from './handlers/palette'
 import {
   handleListPublishedPalettes,
   handleListMyPublishedPalettes,
@@ -42,7 +42,7 @@ export default {
     const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' }
     const hctx: HandlerContext = { request, env, ctx, corsHeaders, jsonHeaders }
 
-    const staticRoutes: Record<string, (ctx: HandlerContext) => Promise<Response>> = {
+    const staticRoutes: Record<string, (ctx: HandlerContext) => Promise<Response> | Response> = {
       '/get-color-system': handleGetColorSystem,
       '/get-palette': handleGetPalette,
       '/create-color-harmony': handleCreateColorHarmony,
@@ -51,6 +51,7 @@ export default {
       '/authenticate': handleAuthenticate,
       '/list-published-palettes': handleListPublishedPalettes,
       '/list-my-published-palettes': handleListMyPublishedPalettes,
+      '/preview': handlePreviewPalette,
     }
 
     if (endpoint && staticRoutes[endpoint]) {
