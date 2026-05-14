@@ -3,11 +3,48 @@ openapi: 3.1.0
 info:
   title: UI Color Palette API
   version: 1.0.0
-  description: >
-    REST API built on Cloudflare Workers that powers the UI Color Palette
-    ecosystem. Provides palette generation, color harmony, dominant color
-    extraction, code generation, AI-powered color suggestions, and palette
-    publishing/sharing.
+  description: |
+    # Welcome
+
+    The **UI Color Palette API** lets you generate production-ready color
+    palettes, export design tokens to every major platform, and tap into a
+    community gallery — all from a single REST API built on
+    [Cloudflare Workers](https://workers.cloudflare.com).
+
+    ## Getting started
+
+    Most endpoints are public and require no credentials. Just call them
+    directly with a JSON body:
+
+    ```http
+    POST https://api-uicp.yelbolt.workers.dev/v1/get-palette
+    Content-Type: application/json
+    ```
+
+    To publish or manage palettes in the community gallery you'll need an
+    access token. Here's the flow:
+
+    1. Call `GET /authenticate` — it returns a Server-Sent Events stream.
+    2. Open the `auth_url` from the first event in your browser and sign in.
+    3. The stream emits a `success` event with `access_token` and
+       `refresh_token`.
+    4. Pass the token on protected endpoints:
+       `Authorization: Bearer <access_token>`
+
+    ## Endpoints at a glance
+
+    | Group | What it does |
+    |---|---|
+    | **Palette** | Generate palettes, color systems, harmonies, dominant colors, and code exports |
+    | **AI** | Natural-language palette generation powered by Mistral |
+    | **Authentication** | Passkey-based SSE sign-in |
+    | **Community** | Publish, share, update, and discover palettes |
+
+    ## Code export formats
+
+    `POST /generate-code` supports: `css`, `scss`, `less`, `tailwind-v3`,
+    `tailwind-v4`, `swift-ui`, `ui-kit`, `compose`, `resources`, `csv`,
+    `native-tokens`, `dtcg-tokens`, `style-dictionary-v3`, `universal-json`.
 
 servers:
   - url: https://api-uicp.yelbolt.workers.dev/v1
