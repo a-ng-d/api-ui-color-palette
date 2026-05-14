@@ -1,3 +1,5 @@
+![GitHub package.json version](https://img.shields.io/github/package-json/v/a-ng-d/api-ui-color-palette?color=informational) ![GitHub last commit](https://img.shields.io/github/last-commit/a-ng-d/api-ui-color-palette?color=informational) ![GitHub](https://img.shields.io/github/license/a-ng-d/api-ui-color-palette?color=informational) ![Cloudflare Workers](https://img.shields.io/badge/Cloudflare_Workers-F38020?logo=cloudflare&logoColor=white) ![Worker status](https://img.shields.io/website?url=https%3A%2F%2Fapi-uicp.yelbolt.workers.dev%2Fv1%2Flist-published-palettes&label=status&up_message=online&down_message=offline)
+
 # UI Color Palette API
 
 REST API built on Cloudflare Workers that powers the UI Color Palette ecosystem. It provides palette generation, color harmony, dominant color extraction, code generation, AI-powered color suggestions, and palette publishing/sharing.
