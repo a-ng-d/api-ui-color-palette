@@ -194,10 +194,11 @@ export const handleSharePublishedPalette = async (
 
     const user = await verifyToken(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, token)
     const supabase = createSupabaseClientWithToken(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, token)
+    const now = new Date().toISOString()
 
     const { data, error } = await supabase
       .from(env.SUPABASE_PALETTES_TABLE)
-      .update({ is_shared: true, updated_at: new Date().toISOString() })
+      .update({ is_shared: true, updated_at: now, published_at: now })
       .eq('palette_id', paletteId)
       .eq('creator_id', user.id)
       .select()
@@ -264,10 +265,11 @@ export const handleUnsharePublishedPalette = async (
 
     const user = await verifyToken(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, token)
     const supabase = createSupabaseClientWithToken(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, token)
+    const now = new Date().toISOString()
 
     const { data, error } = await supabase
       .from(env.SUPABASE_PALETTES_TABLE)
-      .update({ is_shared: false, updated_at: new Date().toISOString() })
+      .update({ is_shared: false, updated_at: now, published_at: now })
       .eq('palette_id', paletteId)
       .eq('creator_id', user.id)
       .select()
