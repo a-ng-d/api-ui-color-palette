@@ -1,0 +1,1433 @@
+openapi: 3.1.0
+
+info:
+  title: UI Color Palette API
+  version: 1.0.0
+  description: >
+    REST API built on Cloudflare Workers that powers the UI Color Palette
+    ecosystem. Provides palette generation, color harmony, dominant color
+    extraction, code generation, AI-powered color suggestions, and palette
+    publishing/sharing.
+
+servers:
+  - url: https://api-uicp.yelbolt.workers.dev/v1
+    description: Production
+
+# ─── Security ─────────────────────────────────────────────────────────────────
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >
+        Supabase access token obtained from the `/authenticate` SSE flow.
+        Pass it as `Authorization: Bearer <access_token>`.
+
+  # ─── Shared Schemas ──────────────────────────────────────────────────────────
+
+  schemas:
+
+    # — Primitive types ————————————————————————————————————————————————————————
+
+    HexColor:
+      type: string
+      pattern: '^#[0-9a-fA-F]{3,8}$'
+      example: '#3B82F6'
+
+    ColorSpace:
+      type: string
+      enum: [LCH, OKLCH, LAB, OKLAB, HSL, HSLUV, HSV, CMYK, RGB, HEX, P3]
+      example: RGB
+
+    AlgorithmVersion:
+      type: string
+      enum: [v1, v2, v3]
+      example: v3
+
+    EasingFunction:
+      type: string
+      enum:
+        - NONE
+        - LINEAR
+        - EASEIN_SINE
+        - EASEOUT_SINE
+        - EASEINOUT_SINE
+        - EASEIN_QUAD
+        - EASEOUT_QUAD
+        - EASEINOUT_QUAD
+        - EASEIN_CUBIC
+        - EASEOUT_CUBIC
+        - EASEINOUT_CUBIC
+      example: EASEIN_CUBIC
+
+    VisionSimulationMode:
+      type: string
+      enum:
+        - NONE
+        - PROTANOMALY
+        - PROTANOPIA
+        - DEUTERANOMALY
+        - DEUTERANOPIA
+        - TRITANOMALY
+        - TRITANOPIA
+        - ACHROMATOMALY
+        - ACHROMATOPSIA
+      example: NONE
+
+    HarmonyType:
+      type: string
+      enum:
+        - COMPLEMENTARY
+        - ANALOGOUS
+        - TRIADIC
+        - SPLIT_COMPLEMENTARY
+        - TETRADIC
+        - SQUARE
+        - SHADES
+      example: COMPLEMENTARY
+
+    CodeFormat:
+      type: string
+      enum:
+        - css
+        - scss
+        - less
+        - tailwind-v3
+        - tailwind-v4
+        - swift-ui
+        - ui-kit
+        - compose
+        - resources
+        - csv
+        - native-tokens
+        - dtcg-tokens
+        - style-dictionary-v3
+        - universal-json
+      example: css
+
+    # — Palette building blocks ————————————————————————————————————————————————
+
+    PresetConfiguration:
+      type: object
+      required: [id, name, stops, min, max, easing]
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the preset. Auto-generated if omitted on creation.
+          example: aBcDeFgHiJk
+        name:
+          type: string
+          example: Material
+        stops:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+          example: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900]
+        min:
+          type: number
+          minimum: 0
+          maximum: 100
+          example: 5
+        max:
+          type: number
+          minimum: 0
+          maximum: 100
+          example: 95
+        easing:
+          $ref: '#/components/schemas/EasingFunction'
+
+    ShiftConfiguration:
+      type: object
+      required: [chroma, hue]
+      properties:
+        chroma:
+          type: number
+          example: 0
+        hue:
+          type: number
+          example: 0
+
+    RgbChannel:
+      type: object
+      required: [r, g, b]
+      properties:
+        r:
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 0.231
+        g:
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 0.510
+        b:
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 0.965
+
+    ColorConfiguration:
+      type: object
+      required: [name, rgb, hue, chroma, alpha]
+      properties:
+        id:
+          type: string
+          description: Auto-generated if omitted.
+          example: xYzAbCdEfGh
+        name:
+          type: string
+          example: Blue
+        rgb:
+          $ref: '#/components/schemas/RgbChannel'
+        hue:
+          type: object
+          required: [shift, isLocked]
+          properties:
+            shift:
+              type: number
+              example: 0
+            isLocked:
+              type: boolean
+              example: false
+        chroma:
+          type: object
+          required: [shift, isLocked]
+          properties:
+            shift:
+              type: number
+              example: 0
+            isLocked:
+              type: boolean
+              example: false
+        alpha:
+          type: object
+          required: [isEnabled, backgroundColor]
+          properties:
+            isEnabled:
+              type: boolean
+              example: false
+            backgroundColor:
+              $ref: '#/components/schemas/HexColor'
+
+    ThemeConfiguration:
+      type: object
+      required: [name]
+      properties:
+        id:
+          type: string
+          description: Auto-generated if omitted.
+        name:
+          type: string
+          example: Light
+        scale:
+          type: object
+          description: >
+            Map of stop names to lightness values (0–100). When omitted the
+            preset stops are used unchanged.
+          additionalProperties:
+            type: number
+            minimum: 0
+            maximum: 100
+          example:
+            '100': 10
+            '500': 50
+            '900': 90
+        paletteBackground:
+          $ref: '#/components/schemas/HexColor'
+        textColorsTheme:
+          type: object
+          required: [lightColor, darkColor]
+          properties:
+            lightColor:
+              $ref: '#/components/schemas/HexColor'
+            darkColor:
+              $ref: '#/components/schemas/HexColor'
+        visionSimulationMode:
+          $ref: '#/components/schemas/VisionSimulationMode'
+        type:
+          type: string
+          enum: ['default theme', 'custom theme']
+
+    BaseConfiguration:
+      type: object
+      required: [preset, colors]
+      properties:
+        preset:
+          $ref: '#/components/schemas/PresetConfiguration'
+        colors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColorConfiguration'
+          minItems: 1
+
+    # — System (semantic color system) ─────────────────────────────────────────
+
+    TaxonomyGroupMember:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          example: primary
+        name:
+          type: string
+          example: Primary
+
+    TaxonomyGroup:
+      type: object
+      required: [id, name, members]
+      properties:
+        id:
+          type: string
+          example: brand
+        name:
+          type: string
+          example: Brand
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaxonomyGroupMember'
+
+    TaxonomySchema:
+      type: object
+      required: [groups]
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaxonomyGroup'
+
+    TaxonomyBinding:
+      type: object
+      required: [path, ref]
+      properties:
+        path:
+          type: array
+          items:
+            type: string
+          description: >
+            Hierarchical path that identifies a semantic token
+            (e.g. `["brand", "primary"]`).
+          example: ['brand', 'primary']
+        description:
+          type: string
+        ref:
+          type: string
+          description: >
+            Reference to a palette color, formatted as
+            `<colorName>/<stop>` (e.g. `Blue/500`).
+          example: Blue/500
+        overrides:
+          type: object
+          description: Per-theme stop overrides keyed by theme name.
+          additionalProperties:
+            type: string
+        isExcluded:
+          type: boolean
+          default: false
+
+    SystemConfiguration:
+      type: object
+      required: [schema]
+      properties:
+        schema:
+          $ref: '#/components/schemas/TaxonomySchema'
+        bindings:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaxonomyBinding'
+
+    # — Published palette records ──────────────────────────────────────────────
+
+    PublishedPalette:
+      type: object
+      properties:
+        palette_id:
+          type: string
+          example: aBcDeFgHiJk
+        name:
+          type: string
+          example: Ocean Blues
+        description:
+          type: string
+          nullable: true
+        preset:
+          $ref: '#/components/schemas/PresetConfiguration'
+        shift:
+          $ref: '#/components/schemas/ShiftConfiguration'
+        are_source_colors_locked:
+          type: boolean
+        colors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColorConfiguration'
+        themes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThemeConfiguration'
+        color_space:
+          $ref: '#/components/schemas/ColorSpace'
+        algorithm_version:
+          $ref: '#/components/schemas/AlgorithmVersion'
+        creator_full_name:
+          type: string
+          nullable: true
+        creator_avatar_url:
+          type: string
+          nullable: true
+        is_shared:
+          type: boolean
+        star_count:
+          type: integer
+
+    MyPublishedPalette:
+      allOf:
+        - $ref: '#/components/schemas/PublishedPalette'
+        - type: object
+          properties:
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+            published_at:
+              type: string
+              format: date-time
+
+    PublishPaletteBody:
+      type: object
+      required: [name, preset, shift, colors, themes, color_space, algorithm_version]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          example: Ocean Blues
+        description:
+          type: string
+          example: A cool blue palette inspired by the ocean.
+        preset:
+          $ref: '#/components/schemas/PresetConfiguration'
+        shift:
+          $ref: '#/components/schemas/ShiftConfiguration'
+        are_source_colors_locked:
+          type: boolean
+          default: false
+        colors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColorConfiguration'
+          minItems: 1
+        themes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThemeConfiguration'
+          minItems: 1
+        color_space:
+          $ref: '#/components/schemas/ColorSpace'
+        algorithm_version:
+          $ref: '#/components/schemas/AlgorithmVersion'
+        is_shared:
+          type: boolean
+          default: false
+
+    UpdatePaletteBody:
+      type: object
+      description: All fields are optional; only the supplied ones are updated.
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        preset:
+          $ref: '#/components/schemas/PresetConfiguration'
+        shift:
+          $ref: '#/components/schemas/ShiftConfiguration'
+        are_source_colors_locked:
+          type: boolean
+        colors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColorConfiguration'
+          minItems: 1
+        themes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThemeConfiguration'
+          minItems: 1
+        color_space:
+          $ref: '#/components/schemas/ColorSpace'
+        algorithm_version:
+          $ref: '#/components/schemas/AlgorithmVersion'
+        is_shared:
+          type: boolean
+
+    # — AI ─────────────────────────────────────────────────────────────────────
+
+    MistralColor:
+      type: object
+      required: [name, hex, rgb]
+      properties:
+        name:
+          type: string
+          example: Ocean Blue
+        hex:
+          $ref: '#/components/schemas/HexColor'
+        rgb:
+          type: object
+          required: [r, g, b]
+          properties:
+            r:
+              type: integer
+              minimum: 0
+              maximum: 255
+            g:
+              type: integer
+              minimum: 0
+              maximum: 255
+            b:
+              type: integer
+              minimum: 0
+              maximum: 255
+        description:
+          type: string
+
+    MistralColorPalette:
+      type: object
+      required: [primary, text, success, warning, alert]
+      properties:
+        primary:
+          $ref: '#/components/schemas/MistralColor'
+        text:
+          $ref: '#/components/schemas/MistralColor'
+        success:
+          $ref: '#/components/schemas/MistralColor'
+        warning:
+          $ref: '#/components/schemas/MistralColor'
+        alert:
+          $ref: '#/components/schemas/MistralColor'
+
+    # — Harmony ────────────────────────────────────────────────────────────────
+
+    Channel:
+      type: object
+      description: >
+        Color channel values as defined by `@a_ng_d/utils-ui-color-palette`.
+        At minimum provide an `rgb` object; additional channels (lch, oklch,
+        etc.) may be included.
+      properties:
+        rgb:
+          $ref: '#/components/schemas/RgbChannel'
+      additionalProperties: true
+
+    HarmonyColors:
+      type: object
+      description: >
+        A set of colors forming the requested harmony. Keys depend on the
+        harmony type (e.g. `complementary`, `analogous1`, `analogous2`).
+        Values follow the `Channel` shape and include both `rgb` and `hex`
+        representations when `returnFormat` is `both`.
+      additionalProperties: true
+
+    # — Dominant colors ────────────────────────────────────────────────────────
+
+    DominantColor:
+      type: object
+      properties:
+        hex:
+          $ref: '#/components/schemas/HexColor'
+        rgb:
+          $ref: '#/components/schemas/RgbChannel'
+        population:
+          type: number
+          description: Relative frequency of this color in the image (0–1).
+
+    # — Errors ─────────────────────────────────────────────────────────────────
+
+    ErrorResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          example: Missing Authorization header
+
+# ─── Paths ────────────────────────────────────────────────────────────────────
+
+paths:
+
+  # ── Palette generation ───────────────────────────────────────────────────────
+
+  /get-palette:
+    post:
+      operationId: getPalette
+      summary: Generate a color palette
+      description: >
+        Generate a complete color palette from base and theme configurations.
+        Returns the full `PaletteData` object produced by the palette engine.
+      tags: [Palette]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [base, themes]
+              properties:
+                base:
+                  $ref: '#/components/schemas/BaseConfiguration'
+                themes:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ThemeConfiguration'
+                  minItems: 1
+                includeLibraryData:
+                  type: boolean
+                  default: false
+                  description: Include internal library metadata in the response.
+                compact:
+                  type: boolean
+                  default: false
+                  description: Return a compact (lighter) representation of the palette.
+            example:
+              base:
+                preset:
+                  id: aBcDeFgHiJk
+                  name: Material
+                  stops: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900]
+                  min: 5
+                  max: 95
+                  easing: EASEIN_CUBIC
+                colors:
+                  - name: Blue
+                    rgb: { r: 0.231, g: 0.510, b: 0.965 }
+                    hue: { shift: 0, isLocked: false }
+                    chroma: { shift: 0, isLocked: false }
+                    alpha: { isEnabled: false, backgroundColor: '#ffffff' }
+              themes:
+                - name: Light
+      responses:
+        '200':
+          description: Palette data
+          content:
+            application/json:
+              schema:
+                type: object
+                description: >
+                  Full `PaletteData` object. Shape depends on the palette engine
+                  version and `compact` flag.
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /get-color-system:
+    post:
+      operationId: getColorSystem
+      summary: Build a semantic color system
+      description: >
+        Resolves taxonomy bindings against a generated palette to produce a
+        semantic `SystemData` object. Requires
+        `@a_ng_d/utils-ui-color-palette >= 1.10.0` on the worker.
+      tags: [Palette]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [base, themes, system]
+              properties:
+                base:
+                  $ref: '#/components/schemas/BaseConfiguration'
+                themes:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ThemeConfiguration'
+                  minItems: 1
+                system:
+                  $ref: '#/components/schemas/SystemConfiguration'
+      responses:
+        '200':
+          description: System data
+          content:
+            application/json:
+              schema:
+                type: object
+                description: >
+                  `SystemData` object produced by the palette engine.
+        '400':
+          description: Missing or invalid system configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '501':
+          description: System class unavailable (worker dependency too old)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /create-color-harmony:
+    post:
+      operationId: createColorHarmony
+      summary: Generate color harmonies
+      description: >
+        Compute one or all color harmonies (complementary, analogous, triadic,
+        etc.) from a base color.
+      tags: [Palette]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [baseColor]
+              properties:
+                baseColor:
+                  $ref: '#/components/schemas/Channel'
+                analogousSpread:
+                  type: number
+                  description: >
+                    Spread angle (in degrees) used for analogous harmonies.
+                  example: 30
+                returnFormat:
+                  type: string
+                  enum: [rgb, hex, both]
+                  default: both
+                  description: Output format for each color in the result.
+                type:
+                  oneOf:
+                    - $ref: '#/components/schemas/HarmonyType'
+                    - type: string
+                      enum: [ALL]
+                  default: ALL
+                  description: >
+                    Harmony to compute. Use `ALL` (default) to get every harmony
+                    at once.
+      responses:
+        '200':
+          description: Harmony result
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/HarmonyColors'
+                  - type: object
+                    description: >
+                      When `type` is `ALL`, an object keyed by harmony name,
+                      each value following the `HarmonyColors` shape.
+                    additionalProperties:
+                      $ref: '#/components/schemas/HarmonyColors'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /extract-dominant-colors:
+    post:
+      operationId: extractDominantColors
+      summary: Extract dominant colors from an image
+      description: >
+        Extract the most prominent colors from a JPEG or PNG image. The image
+        can be supplied in three ways:
+
+        1. **Multipart upload** — `Content-Type: multipart/form-data` with an
+           `image` file field.
+        2. **URL** — JSON body with `imageUrl`.
+        3. **Raw pixel data** — JSON body with `imageData`
+           `{ data: number[], width, height }`.
+      tags: [Palette]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: JPEG or PNG image file.
+                colorCount:
+                  type: integer
+                  description: Number of dominant colors to extract.
+                  example: 5
+                maxIterations:
+                  type: integer
+                  description: Maximum k-means iterations.
+                tolerance:
+                  type: number
+                  description: Convergence tolerance.
+                skipTransparent:
+                  type: string
+                  enum: ['true', 'false']
+                  description: Skip fully transparent pixels.
+          application/json:
+            schema:
+              type: object
+              properties:
+                imageUrl:
+                  type: string
+                  format: uri
+                  description: Publicly accessible URL of a JPEG or PNG image.
+                imageData:
+                  type: object
+                  description: Raw RGBA pixel buffer.
+                  required: [data, width, height]
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        type: integer
+                      description: Flat RGBA byte array.
+                    width:
+                      type: integer
+                    height:
+                      type: integer
+                colorCount:
+                  type: integer
+                  example: 5
+                maxIterations:
+                  type: integer
+                tolerance:
+                  type: number
+                skipTransparent:
+                  type: boolean
+      responses:
+        '200':
+          description: List of dominant colors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DominantColor'
+        '400':
+          description: Missing or invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /generate-code:
+    post:
+      operationId: generateCode
+      summary: Generate design tokens / code
+      description: >
+        Generate platform-specific design tokens or code from a palette.
+        Accepts `base` + `themes` (not a pre-built `paletteData` object).
+        Optionally pass a `system` to include semantic tokens.
+      tags: [Palette]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [base, themes]
+              properties:
+                base:
+                  $ref: '#/components/schemas/BaseConfiguration'
+                themes:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ThemeConfiguration'
+                  minItems: 1
+                format:
+                  $ref: '#/components/schemas/CodeFormat'
+                colorSpace:
+                  $ref: '#/components/schemas/ColorSpace'
+                system:
+                  $ref: '#/components/schemas/SystemConfiguration'
+            example:
+              base:
+                preset:
+                  id: aBcDeFgHiJk
+                  name: Material
+                  stops: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900]
+                  min: 5
+                  max: 95
+                  easing: EASEIN_CUBIC
+                colors:
+                  - name: Blue
+                    rgb: { r: 0.231, g: 0.510, b: 0.965 }
+                    hue: { shift: 0, isLocked: false }
+                    chroma: { shift: 0, isLocked: false }
+                    alpha: { isEnabled: false, backgroundColor: '#ffffff' }
+              themes:
+                - name: Light
+              format: css
+              colorSpace: RGB
+      responses:
+        '200':
+          description: Generated code as a string or structured object depending on the format.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: string
+                    description: For text-based formats (css, scss, less, swift-ui, etc.)
+                  - type: object
+                    description: For structured formats (tailwind-v3/v4, dtcg-tokens, etc.)
+                    additionalProperties: true
+        '400':
+          description: Unknown format or invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '501':
+          description: System class unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /generate-colors-from-prompts:
+    post:
+      operationId: generateColorsFromPrompts
+      summary: AI-powered color palette generation
+      description: >
+        Generate a 5-color semantic palette (primary, text, success, warning,
+        alert) from a natural language description using the Mistral AI agent.
+      tags: [AI]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt]
+              properties:
+                prompt:
+                  type: string
+                  description: Natural language description of the desired palette.
+                  example: A calm, professional SaaS dashboard with ocean tones
+      responses:
+        '200':
+          description: Generated 5-color palette
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MistralColorPalette'
+        '400':
+          description: Missing prompt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: AI agent error or internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── Preview ──────────────────────────────────────────────────────────────────
+
+  /preview:
+    get:
+      operationId: previewPalette
+      summary: Preview palette as SVG
+      description: >
+        Render a palette as an SVG swatch grid. The `data` query parameter uses
+        a compact encoding:
+
+        ```
+        <theme>~<color>~<shade>:<hex6>[,<shade>:<hex6>][;<color>~...][|<theme>~...]
+        ```
+
+        - `|` separates themes
+        - `;` separates colors within a theme
+        - `~` separates the name from shade pairs
+        - `,` separates individual shade:hex pairs
+        - `:` separates a shade name from its 6-digit hex value (without `#`)
+
+        Values must be URL-encoded when they contain special characters.
+      tags: [Palette]
+      parameters:
+        - name: data
+          in: query
+          required: true
+          description: Compact palette data string.
+          schema:
+            type: string
+          example: 'Light~Blue~50:EFF6FF,500:3B82F6,900:1E3A8A'
+      responses:
+        '200':
+          description: SVG swatch grid
+          content:
+            image/svg+xml:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: 'public, max-age=86400'
+        '400':
+          description: Missing or invalid `data` parameter
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  # ── Authentication ───────────────────────────────────────────────────────────
+
+  /authenticate:
+    get:
+      operationId: authenticate
+      summary: Start a passkey authentication flow (SSE)
+      description: >
+        Initiates a passkey-based sign-in. Returns a
+        `text/event-stream` (SSE) that emits events until the user
+        authenticates or the 2-minute timeout expires.
+
+        **Event sequence:**
+
+        1. `pending` — contains the `passkey` and an `auth_url` to open.
+        2. `success` — contains `access_token` and `refresh_token`.
+
+        The stream closes automatically after `success` or timeout.
+      tags: [Authentication]
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: >
+                  Each `data:` line is a JSON object. Possible shapes:
+
+                  **Pending event:**
+                  ```json
+                  {
+                    "status": "pending",
+                    "passkey": "abc123",
+                    "auth_url": "https://auth.ui-color-palette.com/?passkey=abc123",
+                    "message": "Please authenticate by opening the following URL in your browser: ..."
+                  }
+                  ```
+
+                  **Success event:**
+                  ```json
+                  {
+                    "status": "success",
+                    "access_token": "<supabase-jwt>",
+                    "refresh_token": "<refresh-token>"
+                  }
+                  ```
+        '502':
+          description: Failed to reach the passkey service
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── Community / Published palettes ───────────────────────────────────────────
+
+  /list-published-palettes:
+    get:
+      operationId: listPublishedPalettes
+      summary: List publicly shared palettes
+      description: >
+        Returns a paginated list of community palettes where `is_shared` is
+        `true`, ordered by most recently published then by popularity.
+      tags: [Community]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number (1-based).
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+          description: Number of results per page (max 50).
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Case-insensitive substring search on palette name.
+      responses:
+        '200':
+          description: Array of published palettes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublishedPalette'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /list-my-published-palettes:
+    get:
+      operationId: listMyPublishedPalettes
+      summary: List the authenticated user's palettes
+      description: >
+        Returns a paginated list of palettes belonging to the authenticated
+        user (both shared and private).
+      tags: [Community]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Case-insensitive substring search on palette name.
+      responses:
+        '200':
+          description: Array of the user's published palettes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MyPublishedPalette'
+        '401':
+          description: Missing or invalid authorization token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /publish-palette:
+    post:
+      operationId: publishPalette
+      summary: Publish a new palette
+      description: >
+        Create and persist a new palette in the database. Set `is_shared: true`
+        to make it immediately visible in the community gallery.
+      tags: [Community]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishPaletteBody'
+      responses:
+        '201':
+          description: Palette created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyPublishedPalette'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid authorization token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /get-published-palette/{paletteId}:
+    get:
+      operationId: getPublishedPalette
+      summary: Get a specific shared palette
+      description: >
+        Retrieve a single publicly shared palette by its ID. Returns `404`
+        if the palette does not exist or is not shared.
+      tags: [Community]
+      parameters:
+        - name: paletteId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The unique palette identifier.
+          example: aBcDeFgHiJk
+      responses:
+        '200':
+          description: The requested palette
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishedPalette'
+        '404':
+          description: Palette not found or not shared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /share-published-palette/{paletteId}:
+    post:
+      operationId: sharePublishedPalette
+      summary: Make a palette publicly visible
+      description: >
+        Set `is_shared` to `true` on one of the authenticated user's palettes,
+        making it appear in the community gallery.
+      tags: [Community]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: paletteId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: aBcDeFgHiJk
+      responses:
+        '200':
+          description: Updated palette record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyPublishedPalette'
+        '401':
+          description: Missing or invalid authorization token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Palette not found or not owned by the authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /unshare-published-palette/{paletteId}:
+    post:
+      operationId: unsharePublishedPalette
+      summary: Make a palette private
+      description: >
+        Set `is_shared` to `false` on one of the authenticated user's palettes,
+        hiding it from the community gallery.
+      tags: [Community]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: paletteId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: aBcDeFgHiJk
+      responses:
+        '200':
+          description: Updated palette record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyPublishedPalette'
+        '401':
+          description: Missing or invalid authorization token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Palette not found or not owned by the authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /update-published-palette/{paletteId}:
+    post:
+      operationId: updatePublishedPalette
+      summary: Update an existing palette
+      description: >
+        Partially update an existing palette. Only the fields present in the
+        request body are updated; all others remain unchanged.
+      tags: [Community]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: paletteId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: aBcDeFgHiJk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePaletteBody'
+      responses:
+        '200':
+          description: Updated palette record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyPublishedPalette'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid authorization token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Palette not found or not owned by the authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /unpublish-palette/{paletteId}:
+    delete:
+      operationId: unpublishPalette
+      summary: Permanently delete a palette
+      description: >
+        Permanently remove a palette from the database. This action is
+        **irreversible**. Only the palette's creator can delete it.
+      tags: [Community]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: paletteId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: aBcDeFgHiJk
+      responses:
+        '200':
+          description: The deleted palette record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyPublishedPalette'
+        '401':
+          description: Missing or invalid authorization token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+# ─── Tags ─────────────────────────────────────────────────────────────────────
+
+tags:
+  - name: Palette
+    description: >
+      Core palette generation — compute palettes, color systems, harmonies,
+      dominant colors, and export to various code formats.
+  - name: AI
+    description: >
+      AI-assisted palette generation via Mistral.
+  - name: Authentication
+    description: >
+      Passkey-based authentication flow (SSE).
+  - name: Community
+    description: >
+      Publish, share, and discover palettes in the community gallery.
