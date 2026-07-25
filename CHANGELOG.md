@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-07-25
+
+### Added
+
+- OpenAPI description rewritten as a full onboarding guide: "Getting started" section with the passkey/SSE authentication flow, an endpoint-group overview table, and the complete list of `generate-code` output formats
+- CHANGELOG and README project badges
+
+### Changed
+
+- Production server URL updated to `https://api.ui-color-palette.com/v1` in the OpenAPI specification
+
 ## [1.0.0] - 2026-05-14
 
 ### Added
@@ -139,6 +150,7 @@ No substantive changes — version bump only.
 - `/v1/get-color-system` — builds a semantic color system from taxonomy bindings
 - `/v1/get-published-palette` and `/v1/list-published-palettes` — community read endpoints
 
+[1.0.1]: https://github.com/a-ng-d/api-ui-color-palette/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/a-ng-d/api-ui-color-palette/compare/v0.5.4...v1.0.0
 [0.5.4]: https://github.com/a-ng-d/api-ui-color-palette/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/a-ng-d/api-ui-color-palette/compare/v0.5.2...v0.5.3
