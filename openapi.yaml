@@ -17,7 +17,7 @@ info:
     directly with a JSON body:
 
     ```http
-    POST https://api-uicp.yelbolt.workers.dev/v1/get-palette
+    POST https://api.ui-color-palette.com/v1/get-palette
     Content-Type: application/json
     ```
 
@@ -47,7 +47,7 @@ info:
     `native-tokens`, `dtcg-tokens`, `style-dictionary-v3`, `universal-json`.
 
 servers:
-  - url: https://api-uicp.yelbolt.workers.dev/v1
+  - url: https://api.ui-color-palette.com/v1
     description: Production
 
 # ─── Security ─────────────────────────────────────────────────────────────────
@@ -64,7 +64,6 @@ components:
   # ─── Shared Schemas ──────────────────────────────────────────────────────────
 
   schemas:
-
     # — Primitive types ————————————————————————————————————————————————————————
 
     HexColor:
@@ -596,7 +595,6 @@ components:
 # ─── Paths ────────────────────────────────────────────────────────────────────
 
 paths:
-
   # ── Palette generation ───────────────────────────────────────────────────────
 
   /get-palette:
