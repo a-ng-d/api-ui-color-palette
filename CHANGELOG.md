@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-07-26
+
+### Changed
+
+- Migrated the palette engine dependency from `@a_ng_d/utils-ui-color-palette` to `@yelbolt/engine-ui-color-palette` (`^1.10.3`) — updated across `package.json`, all handler imports (`palette.ts`, `community.ts`, `helpers.ts`, `validation.ts`), dynamic `System` class import, error messages, and the OpenAPI spec
+
 ## [1.0.1] - 2026-07-25
 
 ### Added
@@ -150,6 +156,7 @@ No substantive changes — version bump only.
 - `/v1/get-color-system` — builds a semantic color system from taxonomy bindings
 - `/v1/get-published-palette` and `/v1/list-published-palettes` — community read endpoints
 
+[1.0.2]: https://github.com/a-ng-d/api-ui-color-palette/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/a-ng-d/api-ui-color-palette/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/a-ng-d/api-ui-color-palette/compare/v0.5.4...v1.0.0
 [0.5.4]: https://github.com/a-ng-d/api-ui-color-palette/compare/v0.5.3...v0.5.4
