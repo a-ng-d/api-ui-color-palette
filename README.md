@@ -73,7 +73,7 @@ Supported `format` values:
 ## Tech Stack
 
 - **Runtime**: Cloudflare Workers
-- **Palette Engine**: [@a_ng_d/utils-ui-color-palette](https://github.com/a-ng-d/utils-ui-color-palette)
+- **Palette Engine**: [@yelbolt/engine-ui-color-palette](https://github.com/a-ng-d/utils-ui-color-palette)
 - **AI**: Mistral AI
 - **Database**: Supabase (PostgreSQL)
 - **Image Decoding**: @jsquash/jpeg, @jsquash/png

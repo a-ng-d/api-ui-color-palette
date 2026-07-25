@@ -3,7 +3,7 @@ import {
   AlgorithmVersionConfiguration,
   VisionSimulationModeConfiguration,
   EasingConfiguration,
-} from '@a_ng_d/utils-ui-color-palette'
+} from '@yelbolt/engine-ui-color-palette'
 
 // ─── Allowed Fields ───────────────────────────────────────────────────────────
 

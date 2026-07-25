@@ -8,7 +8,7 @@ import {
   ColorSpaceConfiguration,
   Channel,
   HarmonyType,
-} from '@a_ng_d/utils-ui-color-palette'
+} from '@yelbolt/engine-ui-color-palette'
 import decodeJpeg from '@jsquash/jpeg/decode'
 import decodePng, { init as initPng } from '@jsquash/png/decode'
 // @ts-ignore
@@ -65,11 +65,11 @@ export const handleGetColorSystem = async ({ request, corsHeaders, jsonHeaders }
     const paletteData = new Data({ base, themes }).makePaletteData()
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const utilsModule = (await import('@a_ng_d/utils-ui-color-palette')) as any
+    const utilsModule = (await import('@yelbolt/engine-ui-color-palette')) as any
     const SystemClass = utilsModule.System
     if (typeof SystemClass !== 'function') {
       return new Response(
-        JSON.stringify({ message: 'System class unavailable. Requires @a_ng_d/utils-ui-color-palette >= 1.10.0' }) as BodyInit,
+        JSON.stringify({ message: 'System class unavailable. Requires @yelbolt/engine-ui-color-palette >= 1.10.0' }) as BodyInit,
         { status: 501, headers: jsonHeaders },
       )
     }
@@ -163,10 +163,10 @@ export const handleExtractDominantColors = async ({ request, corsHeaders, jsonHe
         await initPng(PNG_WASM)
         imageData = await decodePng(arrayBuffer)
       } else {
-        return new Response(
-          JSON.stringify({ message: `Unsupported image type: ${mimeType}. Use image/jpeg or image/png.` }) as BodyInit,
-          { status: 400, headers: corsHeaders },
-        )
+        return new Response(JSON.stringify({ message: `Unsupported image type: ${mimeType}. Use image/jpeg or image/png.` }) as BodyInit, {
+          status: 400,
+          headers: corsHeaders,
+        })
       }
 
       const colorCount = formData.get('colorCount')
@@ -193,10 +193,10 @@ export const handleExtractDominantColors = async ({ request, corsHeaders, jsonHe
       if (body.imageUrl) {
         const res = await fetch(body.imageUrl)
         if (!res.ok) {
-          return new Response(
-            JSON.stringify({ message: `Failed to fetch image: ${res.status} ${res.statusText}` }) as BodyInit,
-            { status: 400, headers: corsHeaders },
-          )
+          return new Response(JSON.stringify({ message: `Failed to fetch image: ${res.status} ${res.statusText}` }) as BodyInit, {
+            status: 400,
+            headers: corsHeaders,
+          })
         }
         const mimeType = res.headers.get('Content-Type') ?? ''
         const arrayBuffer = await res.arrayBuffer()
@@ -262,11 +262,11 @@ export const handleGenerateCode = async ({ request, corsHeaders, jsonHeaders }: 
     let systemData: unknown
     if (body.system) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const utilsModule = (await import('@a_ng_d/utils-ui-color-palette')) as any
+      const utilsModule = (await import('@yelbolt/engine-ui-color-palette')) as any
       const SystemClass = utilsModule.System
       if (typeof SystemClass !== 'function')
         return new Response(
-          JSON.stringify({ message: 'System class unavailable. Requires @a_ng_d/utils-ui-color-palette >= 1.10.0' }) as BodyInit,
+          JSON.stringify({ message: 'System class unavailable. Requires @yelbolt/engine-ui-color-palette >= 1.10.0' }) as BodyInit,
           { status: 501, headers: jsonHeaders },
         )
       systemData = new SystemClass({ paletteData: data, system: body.system }).makeSystemData()
@@ -345,12 +345,7 @@ type PreviewCell = {
 }
 
 const escapeXml = (s: string): string =>
-  String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
+  String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/
 

@@ -70,7 +70,15 @@ describe('CORS preflight', () => {
 const paletteBody = {
   base: {
     preset: { id: 'preset-1', name: 'Material', stops: [100, 200, 300, 400, 500, 600, 700, 800, 900], min: 10, max: 90, easing: 'NONE' },
-    colors: [{ name: 'Blue', rgb: { r: 0, g: 0.47, b: 1 }, hue: { shift: 0, isLocked: false }, chroma: { shift: 0, isLocked: false }, alpha: { isEnabled: false, backgroundColor: '#FFFFFF' } }],
+    colors: [
+      {
+        name: 'Blue',
+        rgb: { r: 0, g: 0.47, b: 1 },
+        hue: { shift: 0, isLocked: false },
+        chroma: { shift: 0, isLocked: false },
+        alpha: { isEnabled: false, backgroundColor: '#FFFFFF' },
+      },
+    ],
   },
   themes: [{ name: 'Default' }],
 }

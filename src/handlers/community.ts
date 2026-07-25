@@ -5,7 +5,7 @@ import {
   ColorSpaceConfiguration,
   AlgorithmVersionConfiguration,
   ThemeConfiguration,
-} from '@a_ng_d/utils-ui-color-palette'
+} from '@yelbolt/engine-ui-color-palette'
 import { uid } from 'uid'
 import { createSupabaseClient, createSupabaseClientWithToken, extractBearerToken, verifyToken } from '../supabase'
 import { PUBLISH_ALLOWED_FIELDS, validatePublishBody, validateUpdateBody } from '../validation'

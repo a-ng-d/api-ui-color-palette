@@ -552,7 +552,7 @@ components:
     Channel:
       type: object
       description: >
-        Color channel values as defined by `@a_ng_d/utils-ui-color-palette`.
+        Color channel values as defined by `@yelbolt/engine-ui-color-palette`.
         At minimum provide an `rgb` object; additional channels (lch, oklch,
         etc.) may be included.
       properties:
@@ -675,7 +675,7 @@ paths:
       description: >
         Resolves taxonomy bindings against a generated palette to produce a
         semantic `SystemData` object. Requires
-        `@a_ng_d/utils-ui-color-palette >= 1.10.0` on the worker.
+        `@yelbolt/engine-ui-color-palette >= 1.10.0` on the worker.
       tags: [Palette]
       requestBody:
         required: true

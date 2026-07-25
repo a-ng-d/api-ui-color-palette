@@ -1,5 +1,12 @@
 import type { Env, HandlerContext } from './types'
-import { handleGetColorSystem, handleGetPalette, handleCreateColorHarmony, handleExtractDominantColors, handleGenerateCode, handlePreviewPalette } from './handlers/palette'
+import {
+  handleGetColorSystem,
+  handleGetPalette,
+  handleCreateColorHarmony,
+  handleExtractDominantColors,
+  handleGenerateCode,
+  handlePreviewPalette,
+} from './handlers/palette'
 import {
   handleListPublishedPalettes,
   handleListMyPublishedPalettes,
@@ -121,4 +128,3 @@ export default {
     return new Response('Invalid action type', { status: 400 })
   },
 }
-

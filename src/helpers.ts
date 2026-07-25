@@ -1,4 +1,4 @@
-import { ColorConfiguration, ThemeConfiguration, PaletteData } from '@a_ng_d/utils-ui-color-palette'
+import { ColorConfiguration, ThemeConfiguration, PaletteData } from '@yelbolt/engine-ui-color-palette'
 import { uid } from 'uid'
 
 export const toCompactPaletteData = (data: PaletteData): Array<Record<string, unknown>> =>
