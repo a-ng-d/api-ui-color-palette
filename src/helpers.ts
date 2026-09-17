@@ -25,7 +25,6 @@ export const toCompactPaletteData = (data: PaletteData): Array<Record<string, un
 export const fillColorDefaults = (c: Partial<ColorConfiguration> & { id?: string }): ColorConfiguration =>
   ({
     description: '',
-    // Neutral defaults mirror the engine's makeDefaultShift(): HUE neutral is 0, CHROMA neutral is 100
     hue: { shift: { min: 0, max: 0, value: 0, curve: 'LINEAR' }, isLocked: false },
     chroma: { shift: { min: 100, max: 100, value: 100, curve: 'LINEAR' }, isLocked: false },
     alpha: { isEnabled: false, backgroundColor: '#FFFFFF' },
