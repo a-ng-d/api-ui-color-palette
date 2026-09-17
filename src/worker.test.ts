@@ -74,8 +74,8 @@ const paletteBody = {
       {
         name: 'Blue',
         rgb: { r: 0, g: 0.47, b: 1 },
-        hue: { shift: 0, isLocked: false },
-        chroma: { shift: 0, isLocked: false },
+        hue: { shift: { min: 0, max: 0, value: 0, curve: 'LINEAR' }, isLocked: false },
+        chroma: { shift: { min: 100, max: 100, value: 100, curve: 'LINEAR' }, isLocked: false },
         alpha: { isEnabled: false, backgroundColor: '#FFFFFF' },
       },
     ],

@@ -3,6 +3,7 @@ import {
   AlgorithmVersionConfiguration,
   VisionSimulationModeConfiguration,
   EasingConfiguration,
+  ShiftCurve,
 } from '@yelbolt/engine-ui-color-palette'
 
 // ─── Allowed Fields ───────────────────────────────────────────────────────────
@@ -34,6 +35,7 @@ export const EASING_VALUES: readonly EasingConfiguration[] = [
   'EASEOUT_CUBIC',
   'EASEINOUT_CUBIC',
 ]
+export const SHIFT_CURVES: readonly ShiftCurve[] = ['LINEAR', 'HYPERBOLA', 'FREE']
 export const VISION_MODES: readonly VisionSimulationModeConfiguration[] = [
   'NONE',
   'PROTANOMALY',
@@ -86,10 +88,21 @@ export const vPreset = (p: unknown, f: string): ValidationResult => {
   return { ok: true }
 }
 
+export const vShiftCurve = (s: unknown, f: string): ValidationResult => {
+  if (!isObj(s)) return { ok: false, field: f, message: 'must be an object {min: number, max: number, value: number, curve: string}' }
+  if (!isNum(s.min)) return { ok: false, field: `${f}.min`, message: 'must be a number' }
+  if (!isNum(s.max)) return { ok: false, field: `${f}.max`, message: 'must be a number' }
+  if (!isNum(s.value)) return { ok: false, field: `${f}.value`, message: 'must be a number' }
+  if (!isEnum(s.curve, SHIFT_CURVES)) return { ok: false, field: `${f}.curve`, message: `must be one of: ${SHIFT_CURVES.join(', ')}` }
+  return { ok: true }
+}
+
 export const vShift = (s: unknown, f: string): ValidationResult => {
   if (!isObj(s)) return { ok: false, field: f, message: 'must be an object' }
-  if (!isNum(s.chroma)) return { ok: false, field: `${f}.chroma`, message: 'must be a number' }
-  if (!isNum(s.hue)) return { ok: false, field: `${f}.hue`, message: 'must be a number' }
+  const c = vShiftCurve(s.chroma, `${f}.chroma`)
+  if (!c.ok) return c
+  const h = vShiftCurve(s.hue, `${f}.hue`)
+  if (!h.ok) return h
   return { ok: true }
 }
 
@@ -107,11 +120,15 @@ export const vColor = (c: unknown, f: string): ValidationResult => {
       return { ok: false, field: `${f}.rgb.${k}`, message: 'must be a number between 0 and 1' }
   }
   const hue = c.hue as Record<string, unknown>
-  if (!isObj(c.hue) || !isNum(hue.shift) || !isBool(hue.isLocked))
-    return { ok: false, field: `${f}.hue`, message: 'must be {shift: number, isLocked: boolean}' }
+  if (!isObj(c.hue) || !isBool(hue.isLocked))
+    return { ok: false, field: `${f}.hue`, message: 'must be {shift: ShiftCurveConfiguration, isLocked: boolean}' }
+  const hueShift = vShiftCurve(hue.shift, `${f}.hue.shift`)
+  if (!hueShift.ok) return hueShift
   const chroma = c.chroma as Record<string, unknown>
-  if (!isObj(c.chroma) || !isNum(chroma.shift) || !isBool(chroma.isLocked))
-    return { ok: false, field: `${f}.chroma`, message: 'must be {shift: number, isLocked: boolean}' }
+  if (!isObj(c.chroma) || !isBool(chroma.isLocked))
+    return { ok: false, field: `${f}.chroma`, message: 'must be {shift: ShiftCurveConfiguration, isLocked: boolean}' }
+  const chromaShift = vShiftCurve(chroma.shift, `${f}.chroma.shift`)
+  if (!chromaShift.ok) return chromaShift
   const alpha = c.alpha as Record<string, unknown>
   if (!isObj(c.alpha) || !isBool(alpha.isEnabled) || !isHex(alpha.backgroundColor))
     return { ok: false, field: `${f}.alpha`, message: 'must be {isEnabled: boolean, backgroundColor: hex string}' }
