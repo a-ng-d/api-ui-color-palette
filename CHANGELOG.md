@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-11-16
+
+### Added
+
+- **`tailwind-v4` format of `POST /generate-code`, OKLCH**: `colorSpace: "OKLCH"` writes `--color-<color>-<stop>: oklch(…)` (transparency included), with the same notation as the CSS export. Any other `colorSpace`, including the default `RGB`, keeps the HEX output, so existing requests are unchanged. The semantics file is unchanged: it references the variables
+
+### Changed
+
+- Updated `@yelbolt/engine-ui-color-palette` to `^1.12.2`
+- **Changed output — `ui-kit` format of `POST /generate-code`**: the colors are now `UIColor.Token.<Color><Stop>` (`UIColor.Token.<Mode>.<Color><Stop>` with several color modes) instead of `Color.<Color><Stop>`, so the generated code no longer hides SwiftUI's `Color` in a module that also uses SwiftUI. The semantic file follows: `UIColor.SemanticToken.<token>` replaces the top-level `SemanticToken`. Code generated before this release needs to be regenerated and its references updated
+- **Changed output — `style-dictionary-v3` and `universal-json` formats, palettes with several color modes**: the semantic file now has one block per color mode, with aliases that include the mode (`{color.Brand.Light.600}`, `Light.Brand.600`). The base `semantic` block of the Style Dictionary v3 file is gone in that case. Single-mode output is unchanged
+
+### Fixed
+
+- **`dtcg-tokens`, `style-dictionary-v3` and `universal-json` formats**: semantic aliases now use the color names the primitives file is keyed with (`{Brand.600}`, `{color.Brand.600}`, `Brand.600`) instead of their kebab-case form, which resolved to nothing as soon as a name had a capital letter or a space
+- **`swift-ui` and `ui-kit` formats**: semantic references now match the names the primitive files declare (`Color.Token()` was not valid Swift)
+- **`ui-kit` format**: every `UIColor` now carries an `alpha:` (`UIColor(red:green:blue:)` does not exist in UIKit)
+- **`swift-ui` format**: a transparent shade took its blue channel from the shade instead of its source color
+- **`compose` format**: a transparent shade is written as `0xAARRGGBB`, with 8 digits (it had 10)
+- **`resources` format (Android)**: a transparent shade is written as `#AARRGGBB`, the order Android reads, instead of `#RRGGBBAA`
+- **`css` and `scss` formats**: the OKLCH lightness of a transparent shade was read from `oklch[0 * 100]`, which wrote `oklch(0% …)`
+- **`css` format, P3**: shades are converted from sRGB to Display P3 before they are written in `color(display-p3 …)`; the sRGB values were written as they were, which drew a more saturated color on a P3 screen
+
 ## [1.1.0] - 2026-09-17
 
 ### Changed

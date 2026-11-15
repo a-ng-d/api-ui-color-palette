@@ -881,6 +881,11 @@ paths:
         Generate platform-specific design tokens or code from a palette.
         Accepts `base` + `themes` (not a pre-built `paletteData` object).
         Optionally pass a `system` to include semantic tokens.
+
+        `colorSpace` (default `RGB`) sets the notation of the values for
+        `css`, `scss`, `less` and `dtcg-tokens`. For `tailwind-v4`, only
+        `OKLCH` is taken into account: it writes `--color-<color>-<stop>: oklch(…)`,
+        any other value keeps the HEX output.
       tags: [Palette]
       requestBody:
         required: true

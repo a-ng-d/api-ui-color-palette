@@ -112,6 +112,36 @@ describe('POST /get-palette', () => {
   })
 })
 
+// ─── Generate code ────────────────────────────────────────────────────────────
+describe('POST /generate-code — tailwind-v4', () => {
+  const generate = async (colorSpace?: string) => {
+    const res = await call('/generate-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...paletteBody, format: 'tailwind-v4', ...(colorSpace ? { colorSpace } : {}) }),
+    })
+    expect(res.status).toBe(200)
+    return JSON.stringify(await res.json())
+  }
+
+  it('writes HEX values by default', async () => {
+    const out = await generate()
+    expect(out).toContain('--color-')
+    expect(out).toContain('#')
+    expect(out).not.toContain('oklch(')
+  })
+
+  it('keeps HEX values for a color space other than OKLCH', async () => {
+    expect(await generate('RGB')).toBe(await generate())
+  })
+
+  it('writes oklch() values with colorSpace OKLCH', async () => {
+    const out = await generate('OKLCH')
+    expect(out).toContain('--color-')
+    expect(out).toContain('oklch(')
+  })
+})
+
 // ─── Color harmony ────────────────────────────────────────────────────────────
 
 describe('POST /create-color-harmony', () => {

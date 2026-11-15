@@ -51,6 +51,8 @@ Supported `format` values:
 - `style-dictionary-v3`
 - `universal-json`
 
+`colorSpace` (default `RGB`) sets the notation of the values for `css`, `scss`, `less` and `dtcg-tokens`. For `tailwind-v4`, `OKLCH` writes `--color-<color>-<stop>: oklch(…)` and any other value keeps the HEX output.
+
 ### Authentication
 
 | Method | Endpoint           | Description                                     |

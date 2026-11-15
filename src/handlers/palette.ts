@@ -293,7 +293,7 @@ export const handleGenerateCode = async ({ request, corsHeaders, jsonHeaders }: 
         result = code.makeTailwindV3Config()
         break
       case 'tailwind-v4':
-        result = code.makeTailwindV4Config()
+        result = code.makeTailwindV4Config(colorSpace === 'OKLCH' ? 'OKLCH' : 'HEX')
         break
       case 'swift-ui':
         result = code.makeSwiftUI()
